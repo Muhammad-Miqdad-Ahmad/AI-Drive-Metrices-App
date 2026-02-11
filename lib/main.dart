@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_colors.dart';
-import 'screens/auth/login_screen.dart'; // ✅ FIXED PATH
+import 'screens/auth/login_screen.dart';
 
 void main() {
   runApp(const DriveMetricApp());
@@ -13,7 +13,7 @@ class DriveMetricApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'DriveMetric AI',
+      title: 'Drive Metrics AI',
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.background,
         brightness: Brightness.dark,
