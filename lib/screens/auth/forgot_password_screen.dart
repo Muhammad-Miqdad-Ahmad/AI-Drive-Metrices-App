@@ -20,7 +20,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    // TODO: Connect to backend API here
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Password reset link sent to your email")),
     );

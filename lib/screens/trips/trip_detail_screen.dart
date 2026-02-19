@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/theme/app_colors.dart';
-import '../../widgets/charts/live_map_widget.dart';
+//import '../../widgets/charts/live_map_widget.dart';
 import '../../widgets/charts/speed_chart.dart';
 
 class TripDetailScreen extends StatelessWidget {
@@ -29,11 +29,12 @@ class TripDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// MAP WITH ROUTE
-            const ClipRRect(
-              borderRadius: BorderRadius.all(Radius.circular(18)),
-              child: SizedBox(height: 200, child: LiveMapWidget()),
-            ),
+            // MAP WITH ROUTE
+
+         //   const ClipRRect(
+           //   borderRadius: BorderRadius.all(Radius.circular(18)),
+          //    child: SizedBox(height: 200, child: LiveMapWidget()),
+           // ),
 
             const SizedBox(height: 20),
 

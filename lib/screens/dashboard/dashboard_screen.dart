@@ -5,7 +5,7 @@ import '../../widgets/cards/score_card.dart';
 import '../../widgets/cards/summary_card.dart';
 import '../../widgets/charts/speed_chart.dart';
 import '../../widgets/common/custom_button.dart';
-import '../../widgets/charts/live_map_widget.dart';
+// import '../../widgets/charts/live_map_widget.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -148,19 +148,19 @@ class DashboardScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              CustomButton(
-                label: "Live Tracking",
-                icon: Icons.location_pin,
-                fullWidth: true,
-                onPressed: () {},
-              ),
+              // CustomButton(
+              //   label: "Live Tracking",
+              //   icon: Icons.location_pin,
+              //   fullWidth: true,
+              //   onPressed: () {},
+              // ),
 
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
 
-              /// MAP
-              const LiveMapWidget(),
+              // /// MAP
+              // const LiveMapWidget(),
 
-              const SizedBox(height: 30),
+              // const SizedBox(height: 30),
             ],
           ),
         ),
