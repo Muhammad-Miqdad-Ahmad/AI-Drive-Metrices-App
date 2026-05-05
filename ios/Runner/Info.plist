@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Drive Metrics AI needs Bluetooth to connect to your device.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Drive Metrics AI needs Bluetooth to connect to your device.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Drive Metrics AI uses location for trip tracking.</string>
+
 </dict>
 </plist>

@@ -4,28 +4,32 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../app_router.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     await Future.delayed(const Duration(milliseconds: 1200));
@@ -39,39 +43,47 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => context.go(AppRoutes.login),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
-              // Header
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: AppColors.primaryShadow,
-                ),
-                child: const Icon(Icons.directions_car_rounded,
-                    color: Colors.white, size: 28),
-              ),
-              const SizedBox(height: 28),
-              const Text('Welcome back', style: AppTextStyles.h1),
+              const SizedBox(height: 8),
+              const Text('Create Account', style: AppTextStyles.h1),
               const SizedBox(height: 6),
               const Text(
-                'Sign in to your Drive Metrics AI account',
+                'Join Drive Metrics AI and drive safer',
                 style: AppTextStyles.bodyMedium,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
 
-              // Form
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
+                    TextFormField(
+                      controller: _nameCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Enter your name';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
@@ -90,8 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passCtrl,
                       obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _login(),
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline, size: 20),
@@ -103,32 +114,34 @@ class _LoginScreenState extends State<LoginScreen> {
                             size: 20,
                             color: AppColors.textTertiary,
                           ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+                          onPressed: () =>
+                              setState(() => _obscure = !_obscure),
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Enter your password';
-                        }
-
-                        if (v.length < 6) {
-                          return 'Minimum 6 characters';
-                        }
-
+                        if (v == null || v.isEmpty) return 'Enter a password';
+                        if (v.length < 6) return 'Minimum 6 characters';
                         return null;
                       },
                     ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text('Forgot Password?'),
-                      ),
-                    ),
                     const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmCtrl,
+                      obscureText: _obscure,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _register(),
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm Password',
+                        prefixIcon: Icon(Icons.lock_outline, size: 20),
+                      ),
+                      validator: (v) {
+                        if (v != _passCtrl.text) return 'Passwords do not match';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 28),
                     ElevatedButton(
-                      onPressed: _loading ? null : _login,
+                      onPressed: _loading ? null : _register,
                       child: _loading
                           ? const SizedBox(
                               height: 20,
@@ -138,72 +151,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign In'),
+                          : const Text('Create Account'),
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 24),
-
-              // Divider
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('or', style: AppTextStyles.bodySmall),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Register link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    "Don't have an account? ",
+                    'Already have an account? ',
                     style: AppTextStyles.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () => context.go(AppRoutes.register),
+                    onPressed: () => context.go(AppRoutes.login),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                     ),
-                    child: const Text('Sign Up'),
+                    child: const Text('Sign In'),
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Demo hint
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 16, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Use any email/password to explore the demo',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.primary),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),

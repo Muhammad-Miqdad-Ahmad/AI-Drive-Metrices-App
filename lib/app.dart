@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'screens/auth/login_screen.dart';
+import 'app_router.dart';
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DriveMetricsApp extends ConsumerWidget {
+  const DriveMetricsApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: 'Drive Metrics AI',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.purpleTheme,
-      home: const LoginScreen(),
+      theme: AppTheme.lightTheme,
+      routerConfig: appRouter,
     );
   }
 }

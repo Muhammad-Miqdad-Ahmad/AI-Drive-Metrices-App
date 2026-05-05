@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
-import 'core/theme/app_colors.dart';
-import 'screens/auth/login_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app.dart';
 
-void main() {
-  runApp(const DriveMetricApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class DriveMetricApp extends StatelessWidget {
-  const DriveMetricApp({super.key});
+  // Lock to portrait
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Drive Metrics AI',
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.background,
-        brightness: Brightness.dark,
-        primaryColor: AppColors.primary,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.primary,
-          secondary: AppColors.accent,
-        ),
-      ),
-      home: const LoginScreen(),
-    );
-  }
+  // Status bar style
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+    ),
+  );
+
+  runApp(
+    const ProviderScope(
+      child: DriveMetricsApp(),
+    ),
+  );
 }
