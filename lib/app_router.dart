@@ -10,24 +10,31 @@ import 'screens/reports/reports_screen.dart';
 import 'screens/vehicle_health/vehicle_health_screen.dart';
 import 'screens/device_pairing/device_pairing_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/live_trip/live_trip_screen.dart';
 import 'widgets/common/app_shell.dart';
 import 'models/models.dart';
 
 abstract class AppRoutes {
-  static const splash        = '/';
-  static const login         = '/login';
-  static const register      = '/register';
-  static const dashboard     = '/dashboard';
-  static const trips         = '/trips';
-  static const reports       = '/reports';
+  static const splash = '/';
+  static const login = '/login';
+  static const register = '/register';
+  static const dashboard = '/dashboard';
+  static const trips = '/trips';
+  static const tripDetail = '/trips/:id';
+  static const reports = '/reports';
   static const vehicleHealth = '/health';
   static const devicePairing = '/pairing';
-  static const profile       = '/profile';
+  static const profile = '/profile';
+  static const liveTrip = '/live-trip';
+
+  // Helper: build a typed trip-detail path
+  static String tripDetailPath(String tripId) => '/trips/$tripId';
 }
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   routes: [
+    // ── Unauthenticated / standalone screens ─────────────────────────────
     GoRoute(
       path: AppRoutes.splash,
       builder: (context, state) => const SplashScreen(),
@@ -40,6 +47,20 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.register,
       builder: (context, state) => const RegisterScreen(),
     ),
+
+    // ── Live trip — full-screen, no bottom nav ────────────────────────────
+    GoRoute(
+      path: AppRoutes.liveTrip,
+      builder: (context, state) => const LiveTripScreen(),
+    ),
+
+    // ── Device pairing — full-screen, no bottom nav ───────────────────────
+    GoRoute(
+      path: AppRoutes.devicePairing,
+      builder: (context, state) => const DevicePairingScreen(),
+    ),
+
+    // ── Shell (bottom nav) ────────────────────────────────────────────────
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -54,9 +75,10 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: ':id',
               builder: (context, state) {
-                final trip = state.extra is TripModel
-                    ? state.extra as TripModel
-                    : null;
+                // Accept a pre-loaded TripModel via extra to avoid repo lookup,
+                // or fall back to loading by id inside the screen.
+                final trip =
+                    state.extra is TripModel ? state.extra as TripModel : null;
                 return TripDetailScreen(
                   tripId: state.pathParameters['id']!,
                   trip: trip,
@@ -78,10 +100,6 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const ProfileScreen(),
         ),
       ],
-    ),
-    GoRoute(
-      path: AppRoutes.devicePairing,
-      builder: (context, state) => const DevicePairingScreen(),
     ),
   ],
 );
