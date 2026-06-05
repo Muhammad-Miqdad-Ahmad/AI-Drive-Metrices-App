@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
-import 'providers/trip_repository_provider.dart';
-import 'core/services/trip_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,17 +21,9 @@ void main() async {
     ),
   );
 
-  // Initialise repository before runApp so mock/DB data is ready
-  final repo = TripRepository();
-  await repo.init();
-
   runApp(
-    ProviderScope(
-      overrides: [
-        // ── Riverpod 2.x: use overrideWith instead of overrideWithValue ──
-        tripRepositoryProvider.overrideWith((ref) => repo),
-      ],
-      child: const DriveMetricsApp(),
+    const ProviderScope(
+      child: DriveMetricsApp(),
     ),
   );
 }
