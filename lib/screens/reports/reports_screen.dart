@@ -294,15 +294,15 @@ class _ReportCardState extends State<_ReportCard> {
                       pw.SizedBox(width: 8),
                       pw.Text(
                         'No safety events detected — excellent driving!',
-                        style: pw.TextStyle(
-                          color: const PdfColor.fromInt(0xFF34C759),
+                        style: const pw.TextStyle(
+                          color: PdfColor.fromInt(0xFF34C759),
                           fontSize: 12,
                         ),
                       ),
                     ],
                   )
                 : pw.Table(
-                    border: pw.TableBorder(
+                    border:const pw.TableBorder(
                       horizontalInside:
                           pw.BorderSide(color: borderColor, width: 0.5),
                     ),
@@ -389,11 +389,11 @@ class _ReportCardState extends State<_ReportCard> {
             children: [
               pw.Text(
                 'Generated on ${DateFormatter.fullDateTime(DateTime.now())}',
-                style: pw.TextStyle(color: textGrey, fontSize: 9),
+                style: const pw.TextStyle(color: textGrey, fontSize: 9),
               ),
               pw.Text(
                 'Confidential — Driver Report',
-                style: pw.TextStyle(color: textGrey, fontSize: 9),
+                style: const pw.TextStyle(color: textGrey, fontSize: 9),
               ),
             ],
           ),
