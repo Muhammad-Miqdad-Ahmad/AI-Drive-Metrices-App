@@ -302,7 +302,7 @@ class _ReportCardState extends State<_ReportCard> {
                     ],
                   )
                 : pw.Table(
-                    border:const pw.TableBorder(
+                    border: const pw.TableBorder(
                       horizontalInside:
                           pw.BorderSide(color: borderColor, width: 0.5),
                     ),
