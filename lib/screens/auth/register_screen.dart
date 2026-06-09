@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -63,40 +64,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18.r),
           onPressed: () => context.go(AppRoutes.login),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-              const Text('Create Account', style: AppTextStyles.h1),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 8.h),
+              Text('Create Account', style: AppTextStyles.h1),
+              SizedBox(height: 6.h),
+              Text(
                 'Join Drive Metrics AI and drive safer',
                 style: AppTextStyles.bodyMedium,
               ),
-              const SizedBox(height: 36),
+              SizedBox(height: 36.h),
 
               // Error banner
               if (_errorMsg != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12.r),
                   decoration: BoxDecoration(
                     color: AppColors.danger.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     border: Border.all(
                         color: AppColors.danger.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded,
-                          size: 16, color: AppColors.danger),
-                      const SizedBox(width: 8),
+                      Icon(Icons.error_outline_rounded,
+                          size: 16.r, color: AppColors.danger),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           _errorMsg!,
@@ -107,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
               ],
 
               Form(
@@ -119,10 +120,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _nameCtrl,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Full Name',
                         prefixIcon:
-                            Icon(Icons.person_outline_rounded, size: 20),
+                            Icon(Icons.person_outline_rounded, size: 20.r),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
@@ -131,16 +132,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Email
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Email Address',
-                        prefixIcon: Icon(Icons.email_outlined, size: 20),
+                        prefixIcon: Icon(Icons.email_outlined, size: 20.r),
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Enter your email';
@@ -148,16 +149,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Device ID
                     TextFormField(
                       controller: _deviceCtrl,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Device ID',
                         hintText: 'e.g. STM32_DEVICE_001',
-                        prefixIcon: Icon(Icons.memory_rounded, size: 20),
+                        prefixIcon: Icon(Icons.memory_rounded, size: 20.r),
                         helperText: 'Enter the ID printed on your Drive Metrics device',
                       ),
                       validator: (v) {
@@ -167,7 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Password
                     TextFormField(
@@ -176,14 +177,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon:
-                            const Icon(Icons.lock_outline, size: 20),
+                        prefixIcon: Icon(Icons.lock_outline, size: 20.r),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscure
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            size: 20,
+                            size: 20.r,
                             color: AppColors.textTertiary,
                           ),
                           onPressed: () =>
@@ -196,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Confirm Password
                     TextFormField(
@@ -204,9 +204,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       obscureText: _obscure,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _register(),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Confirm Password',
-                        prefixIcon: Icon(Icons.lock_outline, size: 20),
+                        prefixIcon: Icon(Icons.lock_outline, size: 20.r),
                       ),
                       validator: (v) {
                         if (v != _passCtrl.text) {
@@ -215,15 +215,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28.h),
 
                     ElevatedButton(
                       onPressed: _loading ? null : _register,
                       child: _loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
+                          ? SizedBox(
+                              height: 20.r,
+                              width: 20.r,
+                              child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white,
                               ),
@@ -234,11 +234,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Already have an account? ',
                     style: AppTextStyles.bodyMedium,
                   ),
@@ -252,7 +252,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
             ],
           ),
         ),

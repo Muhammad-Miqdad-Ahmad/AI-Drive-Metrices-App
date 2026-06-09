@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -82,29 +83,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off_rounded,
-                size: 48, color: AppColors.danger),
-            const SizedBox(height: 12),
-            Text(_error!,
-                style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            Icon(Icons.cloud_off_rounded, size: 48.r, color: AppColors.danger),
+            SizedBox(height: 12.h),
+            Text(_error!, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+            SizedBox(height: 16.h),
             ElevatedButton(onPressed: _load, child: const Text('Retry')),
           ],
         ),
       );
     }
     if (_trips.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.description_outlined,
-                size: 48, color: AppColors.textTertiary),
-            SizedBox(height: 12),
+            Icon(Icons.description_outlined, size: 48.r, color: AppColors.textTertiary),
+            SizedBox(height: 12.h),
             Text('No reports yet', style: AppTextStyles.h3),
-            SizedBox(height: 8),
-            Text('Reports will appear after your first trip syncs.',
-                style: AppTextStyles.bodySmall),
+            SizedBox(height: 8.h),
+            Text('Reports will appear after your first trip syncs.', style: AppTextStyles.bodySmall),
           ],
         ),
       );
@@ -113,9 +110,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       onRefresh: _load,
       color: AppColors.primary,
       child: ListView.separated(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.r),
         itemCount: _trips.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        separatorBuilder: (_, __) => SizedBox(height: 14.h),
         itemBuilder: (context, index) => _ReportCard(trip: _trips[index]),
       ),
     );
@@ -947,28 +944,28 @@ class _ReportCardState extends State<_ReportCard> {
   List<_PdfTip> _tips(TripModel t) {
     final list = <_PdfTip>[];
     if (t.score.braking < 70) {
-      list.add(_PdfTip(
+      list.add(const _PdfTip(
           color: _red,
           title: 'Improve Braking',
           body:
               'Anticipate stops 3-4 seconds earlier. Gradual pressure reduces brake wear and improves your score.'));
     }
     if (t.score.cornering < 70) {
-      list.add(_PdfTip(
+      list.add(const _PdfTip(
           color: _orange,
           title: 'Smoother Cornering',
           body:
               'Reduce speed before corners, not during. Enter slow, exit fast for better control.'));
     }
     if (t.score.acceleration < 70) {
-      list.add(_PdfTip(
+      list.add(const _PdfTip(
           color: _blue,
           title: 'Steady Acceleration',
           body:
               'Avoid flooring the pedal. Gradual acceleration is more fuel-efficient and comfortable.'));
     }
     if (t.score.smoothness < 70) {
-      list.add(_PdfTip(
+      list.add(const _PdfTip(
           color: _brandBlue,
           title: 'Improve Smoothness',
           body:
@@ -1282,14 +1279,14 @@ class _ReportCardState extends State<_ReportCard> {
         : DateFormatter.time(trip.startTime);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: EdgeInsets.symmetric(vertical: 6.h),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0F2B6C), Color(0xFF0049D6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0A2463).withValues(alpha: 0.25),
@@ -1303,23 +1300,19 @@ class _ReportCardState extends State<_ReportCard> {
         children: [
           // 1. Core Header Row Layout
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
+            padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 14.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 82,
-                  height: 82,
+                  width: 82.r,
+                  height: 82.r,
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.25),
                     shape: BoxShape.circle,
                     border: Border.all(color: scoreColor, width: 3.5),
                     boxShadow: [
-                      BoxShadow(
-                        color: scoreColor.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      )
+                      BoxShadow(color: scoreColor.withValues(alpha: 0.2), blurRadius: 8, spreadRadius: 1)
                     ],
                   ),
                   child: Center(
@@ -1328,79 +1321,62 @@ class _ReportCardState extends State<_ReportCard> {
                       children: [
                         Text(
                           score.toInt().toString(),
-                          style: const TextStyle(
-                            fontSize: 26,
+                          style: TextStyle(
+                            fontSize: 26.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        SizedBox(height: 1.h),
                         Text(
                           trip.score.grade,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: scoreColor,
-                          ),
+                          style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w800, color: scoreColor),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.auto_awesome,
-                              size: 14, color: Colors.amber[300]),
-                          const SizedBox(width: 4),
-                          const Text(
+                          Icon(Icons.auto_awesome, size: 14.r, color: Colors.amber[300]),
+                          SizedBox(width: 4.w),
+                          Text(
                             'DRIVE METRICS AI',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF90B4FF),
+                              color: const Color(0xFF90B4FF),
                               letterSpacing: 1.2,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 3),
-                      const Text(
+                      SizedBox(height: 3.h),
+                      Text(
                         'Trip Safety Report',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6.h),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today_rounded,
-                              size: 12, color: Colors.white60),
-                          const SizedBox(width: 5),
+                          Icon(Icons.calendar_today_rounded, size: 12.r, color: Colors.white60),
+                          SizedBox(width: 5.w),
                           Text(
                             DateFormatter.tripDate(trip.startTime),
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white60,
-                                fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 11.sp, color: Colors.white60, fontWeight: FontWeight.w500),
                           ),
-                          const SizedBox(width: 10),
-                          const Icon(Icons.schedule_rounded,
-                              size: 12, color: Colors.white60),
-                          const SizedBox(width: 5),
+                          SizedBox(width: 10.w),
+                          Icon(Icons.schedule_rounded, size: 12.r, color: Colors.white60),
+                          SizedBox(width: 5.w),
                           Text(
                             timeRange,
-                            style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white60,
-                                fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 11.sp, color: Colors.white60, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -1413,31 +1389,22 @@ class _ReportCardState extends State<_ReportCard> {
 
           // 2. Metrics Dashboard Row
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.r),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildMetricStat(
-                      'Distance',
-                      '${trip.distanceKm.toStringAsFixed(1)} km',
-                      Icons.space_dashboard_rounded,
-                      const Color(0xFF4FA0FF)),
+                  _buildMetricStat('Distance', '${trip.distanceKm.toStringAsFixed(1)} km', Icons.space_dashboard_rounded, const Color(0xFF4FA0FF)),
                   _buildDivider(),
-                  _buildMetricStat('Duration', trip.durationLabel,
-                      Icons.timelapse_rounded, const Color(0xFFFFB236)),
+                  _buildMetricStat('Duration', trip.durationLabel, Icons.timelapse_rounded, const Color(0xFFFFB236)),
                   _buildDivider(),
-                  _buildMetricStat(
-                      'Max Speed',
-                      '${trip.maxSpeedKmh.toInt()} km/h',
-                      Icons.speed_rounded,
-                      const Color(0xFFFF5252)),
+                  _buildMetricStat('Max Speed', '${trip.maxSpeedKmh.toInt()} km/h', Icons.speed_rounded, const Color(0xFFFF5252)),
                 ],
               ),
             ),
@@ -1445,32 +1412,25 @@ class _ReportCardState extends State<_ReportCard> {
 
           // 3. Info Pill Section
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 18.h),
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _buildHeaderChip('Avg Speed: ${trip.avgSpeedKmh.toInt()} km/h',
-                    icon: Icons.analytics_outlined),
+                _buildHeaderChip('Avg Speed: ${trip.avgSpeedKmh.toInt()} km/h', icon: Icons.analytics_outlined),
                 if (trip.harshBrakingCount > 0)
-                  _buildHeaderChip('${trip.harshBrakingCount} Braking Events',
-                      icon: Icons.front_hand_rounded, isDanger: true),
+                  _buildHeaderChip('${trip.harshBrakingCount} Braking Events', icon: Icons.front_hand_rounded, isDanger: true),
                 if (trip.sharpTurnCount > 0)
-                  _buildHeaderChip('${trip.sharpTurnCount} Sharp Turns',
-                      icon: Icons.turn_sharp_right_rounded, isWarning: true),
+                  _buildHeaderChip('${trip.sharpTurnCount} Sharp Turns', icon: Icons.turn_sharp_right_rounded, isWarning: true),
                 if (trip.hardAccelCount > 0)
-                  _buildHeaderChip('${trip.hardAccelCount} Hard Accels',
-                      icon: Icons.bolt_rounded, isInfo: true),
+                  _buildHeaderChip('${trip.hardAccelCount} Hard Accels', icon: Icons.bolt_rounded, isInfo: true),
                 if (totalHarshEvents > 0)
-                  _buildHeaderChip('$totalHarshEvents Harsh Events Total',
-                      icon: Icons.warning_amber_rounded, isDanger: true),
+                  _buildHeaderChip('$totalHarshEvents Harsh Events Total', icon: Icons.warning_amber_rounded, isDanger: true),
                 if (totalHarshEvents == 0 && trip.score.overall >= 85)
-                  _buildHeaderChip('Perfect Smooth Drive',
-                      icon: Icons.verified_user_rounded, isSuccess: true)
+                  _buildHeaderChip('Perfect Smooth Drive', icon: Icons.verified_user_rounded, isSuccess: true)
                 else if (totalHarshEvents == 0 && trip.score.overall < 85)
-                  _buildHeaderChip('Harsh Events Detected',
-                      icon: Icons.check_circle_outline_rounded, isInfo: true),
+                  _buildHeaderChip('Harsh Events Detected', icon: Icons.check_circle_outline_rounded, isInfo: true),
               ],
             ),
           ),
@@ -1479,44 +1439,32 @@ class _ReportCardState extends State<_ReportCard> {
           Container(
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.22),
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(20)),
-              border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20.r)),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
             ),
             child: InkWell(
               onTap: _isDownloading ? null : _downloadReport,
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(20)),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20.r)),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_isDownloading)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
+                      SizedBox(
+                        width: 16.r,
+                        height: 16.r,
+                        child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     else
-                      const Icon(Icons.picture_as_pdf_rounded,
-                          size: 18, color: Color(0xFF79A7FF)),
-                    const SizedBox(width: 8),
+                      Icon(Icons.picture_as_pdf_rounded, size: 18.r, color: const Color(0xFF79A7FF)),
+                    SizedBox(width: 8.w),
                     Text(
-                      _isDownloading
-                          ? 'Generating Document...'
-                          : 'Download Full PDF Report',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
-                      ),
+                      _isDownloading ? 'Generating Document...' : 'Download Full PDF Report',
+                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.2),
                     ),
                   ],
                 ),
@@ -1532,20 +1480,16 @@ class _ReportCardState extends State<_ReportCard> {
       String label, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(height: 5),
+        Icon(icon, size: 18.r, color: color),
+        SizedBox(height: 5.h),
         Text(
           value,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2.h),
         Text(
           label,
-          style: TextStyle(
-              fontSize: 9,
-              color: Colors.white.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 9.sp, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -1553,8 +1497,8 @@ class _ReportCardState extends State<_ReportCard> {
 
   Widget _buildDivider() {
     return Container(
-      height: 28,
-      width: 1,
+      height: 28.h,
+      width: 1.w,
       color: Colors.white.withValues(alpha: 0.08),
     );
   }
@@ -1583,27 +1527,20 @@ class _ReportCardState extends State<_ReportCard> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
       decoration: BoxDecoration(
         color: chipBg,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: contentColor.withValues(alpha: 0.15),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(30.r),
+        border: Border.all(color: contentColor.withValues(alpha: 0.15), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: contentColor),
-          const SizedBox(width: 5),
+          Icon(icon, size: 13.r, color: contentColor),
+          SizedBox(width: 5.w),
           Text(
             text,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: contentColor,
-            ),
+            style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w600, color: contentColor),
           ),
         ],
       ),

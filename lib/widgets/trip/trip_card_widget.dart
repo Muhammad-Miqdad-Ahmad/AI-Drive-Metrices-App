@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/utils/date_formatter.dart';
@@ -17,10 +18,10 @@ class TripCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AppColors.border),
           boxShadow: AppColors.cardShadow,
         ),
@@ -38,7 +39,7 @@ class TripCard extends StatelessWidget {
                         DateFormatter.tripDate(trip.startTime),
                         style: AppTextStyles.labelLarge,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.h),
                       Text(
                         '${trip.distanceKm.toStringAsFixed(1)} km • ${trip.durationLabel}',
                         style: AppTextStyles.bodySmall,
@@ -49,7 +50,7 @@ class TripCard extends StatelessWidget {
                 ScoreBadge(score: trip.score.overall),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             // Stats row
             Row(
               children: [
@@ -59,7 +60,7 @@ class TripCard extends StatelessWidget {
                   unit: 'km/h',
                   label: 'Max',
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16.w),
                 _MiniStat(
                   icon: Icons.speed_outlined,
                   value: '${trip.avgSpeedKmh.toInt()}',
@@ -70,12 +71,12 @@ class TripCard extends StatelessWidget {
             ),
             // Events row (if any)
             if (trip.events.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               const Divider(height: 1),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 6.w,
+                runSpacing: 6.h,
                 children: _buildEventBadges(trip),
               ),
             ],
@@ -96,12 +97,12 @@ class TripCard extends StatelessWidget {
         children: [
           EventBadge(type: entry.key, compact: true),
           if (entry.value > 1) ...[
-            const SizedBox(width: 3),
+            SizedBox(width: 3.w),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(6.r),
               ),
               child: Text(
                 'x${entry.value}',
@@ -133,13 +134,13 @@ class _MiniStat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.textTertiary),
-        const SizedBox(width: 4),
+        Icon(icon, size: 14.r, color: AppColors.textTertiary),
+        SizedBox(width: 4.w),
         Text(
           '$value $unit',
           style: AppTextStyles.monoSmall,
         ),
-        const SizedBox(width: 3),
+        SizedBox(width: 3.w),
         Text(label, style: AppTextStyles.bodySmall),
       ],
     );

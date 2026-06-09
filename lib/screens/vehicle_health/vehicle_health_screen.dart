@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/mock_data_service.dart';
@@ -20,27 +21,27 @@ class VehicleHealthScreen extends StatelessWidget {
         backgroundColor: AppColors.surface,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Overall health card
             _OverallHealthCard(health: health),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // Health metrics
-            const Text('Component Health', style: AppTextStyles.h3),
-            const SizedBox(height: 4),
+            Text('Component Health', style: AppTextStyles.h3),
+            SizedBox(height: 4.h),
             Text(
               'Updated ${DateFormatter.relativeTime(health.lastUpdated)}',
               style: AppTextStyles.bodySmall,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20.r),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(color: AppColors.border),
                 boxShadow: AppColors.cardShadow,
               ),
@@ -51,19 +52,19 @@ class VehicleHealthScreen extends StatelessWidget {
                     value: health.engineHealth,
                     icon: Icons.settings_rounded,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
                   HealthBar(
                     label: 'Brake Wear',
                     value: health.brakeWear,
                     icon: Icons.disc_full_rounded,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
                   HealthBar(
                     label: 'Suspension Stress',
                     value: health.suspensionStress,
                     icon: Icons.directions_car_filled_rounded,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
                   HealthBar(
                     label: 'Tyre Pressure Score',
                     value: health.tyrePressureScore,
@@ -72,20 +73,20 @@ class VehicleHealthScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // Insights
-            const Text('Insights & Recommendations', style: AppTextStyles.h3),
-            const SizedBox(height: 12),
+            Text('Insights & Recommendations', style: AppTextStyles.h3),
+            SizedBox(height: 12.h),
             ...health.insights.map((insight) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: 12.h),
                   child: _InsightCard(insight: insight),
                 )),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // How driving affects health
             _DrivingImpactCard(),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
           ],
         ),
       ),
@@ -103,28 +104,28 @@ class _OverallHealthCard extends StatelessWidget {
     final color = AppColors.scoreColor(score);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
           ScoreGaugeWidget(score: score, size: 110, showLabel: true),
-          const SizedBox(width: 20),
+          SizedBox(width: 20.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Overall Health', style: AppTextStyles.labelMedium),
-                const SizedBox(height: 6),
+                Text('Overall Health', style: AppTextStyles.labelMedium),
+                SizedBox(height: 6.h),
                 Text(
                   _healthLabel(score),
                   style: AppTextStyles.h2.copyWith(color: color),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   'Based on your last ${MockDataService.trips.length} trips and driving behaviour analysis.',
                   style: AppTextStyles.bodySmall,
@@ -184,17 +185,17 @@ class _InsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: _bgColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: _color.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_icon, size: 20, color: _color),
-          const SizedBox(width: 12),
+          Icon(_icon, size: 20.r, color: _color),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +204,7 @@ class _InsightCard extends StatelessWidget {
                   insight.title as String,
                   style: AppTextStyles.labelLarge.copyWith(color: _color),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   insight.description as String,
                   style: AppTextStyles.bodySmall,
@@ -221,10 +222,10 @@ class _DrivingImpactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         boxShadow: AppColors.primaryShadow,
       ),
       child: Column(
@@ -232,16 +233,16 @@ class _DrivingImpactCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline_rounded,
-                  color: Colors.white, size: 20),
-              const SizedBox(width: 8),
+              Icon(Icons.lightbulb_outline_rounded,
+                  color: Colors.white, size: 20.r),
+              SizedBox(width: 8.w),
               Text(
                 'Did You Know?',
                 style: AppTextStyles.h4.copyWith(color: Colors.white),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           Text(
             'Reducing harsh braking events by 50% can extend your brake pad life by up to 30%. '
             'Smooth acceleration also reduces engine wear significantly.',
