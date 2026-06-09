@@ -224,15 +224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
         collapseMode: CollapseMode.parallax,
       ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: IconButton(
-            icon: const Icon(Icons.bluetooth_rounded, color: Colors.white, size: 22),
-            onPressed: () => context.push(AppRoutes.devicePairing),
-          ),
-        ),
-      ],
+      actions: const [],
     );
   }
 
