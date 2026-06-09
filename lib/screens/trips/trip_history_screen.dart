@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/services/supabase_service.dart';
+import '../../core/storage/local_storage_service.dart';
 import '../../models/models.dart';
 import '../../widgets/trip/trip_card_widget.dart';
 
@@ -14,21 +15,45 @@ class TripHistoryScreen extends StatefulWidget {
 }
 
 class _TripHistoryScreenState extends State<TripHistoryScreen> {
-  final trips = MockDataService.trips;
+  bool _loading = true;
+  String? _error;
+  List<TripModel> _trips = [];
   String _filter = 'All';
 
-  List<TripModel> get filteredTrips {
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final token = await LocalStorageService.getDeviceToken();
+      if (token == null) {
+        setState(() { _trips = []; _loading = false; });
+        return;
+      }
+      final svc = SupabaseService(deviceToken: token);
+      final trips = await svc.getRecentTrips(limit: 100);
+      setState(() { _trips = trips; _loading = false; });
+    } catch (e) {
+      setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  List<TripModel> get _filtered {
     switch (_filter) {
       case 'Good':
-        return trips.where((t) => t.score.overall >= 80).toList();
+        return _trips.where((t) => t.score.overall >= 80).toList();
       case 'Fair':
-        return trips
+        return _trips
             .where((t) => t.score.overall >= 60 && t.score.overall < 80)
             .toList();
       case 'Poor':
-        return trips.where((t) => t.score.overall < 60).toList();
+        return _trips.where((t) => t.score.overall < 60).toList();
       default:
-        return trips;
+        return _trips;
     }
   }
 
@@ -47,20 +72,47 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
           ),
         ),
       ),
-      body: filteredTrips.isEmpty
-          ? _EmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: filteredTrips.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final trip = filteredTrips[index];
-                return TripCard(
-                  trip: trip,
-                  onTap: () => context.push('/trips/${trip.id}', extra: trip),
-                );
-              },
-            ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.danger),
+            const SizedBox(height: 12),
+            Text(_error!, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _load, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    final displayed = _filtered;
+    if (displayed.isEmpty) return _EmptyState(filter: _filter);
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(20),
+        itemCount: displayed.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final trip = displayed[index];
+          return TripCard(
+            trip: trip,
+            onTap: () => context.push('/trips/${trip.id}', extra: trip),
+          );
+        },
+      ),
     );
   }
 }
@@ -89,8 +141,7 @@ class _FilterChips extends StatelessWidget {
             onTap: () => onSelected(f),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(20),
@@ -110,6 +161,9 @@ class _FilterChips extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  final String filter;
+  const _EmptyState({required this.filter});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -127,10 +181,15 @@ class _EmptyState extends StatelessWidget {
                 size: 40, color: AppColors.primary),
           ),
           const SizedBox(height: 20),
-          const Text('No trips found', style: AppTextStyles.h3),
+          Text(
+            filter == 'All' ? 'No trips yet' : 'No $filter trips',
+            style: AppTextStyles.h3,
+          ),
           const SizedBox(height: 8),
-          const Text(
-            'Connect your device and start driving',
+          Text(
+            filter == 'All'
+                ? 'Connect your device and start driving'
+                : 'Try a different filter',
             style: AppTextStyles.bodyMedium,
             textAlign: TextAlign.center,
           ),

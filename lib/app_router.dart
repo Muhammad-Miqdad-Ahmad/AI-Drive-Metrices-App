@@ -7,7 +7,6 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/trips/trip_history_screen.dart';
 import 'screens/trips/trip_detail_screen.dart';
 import 'screens/reports/reports_screen.dart';
-import 'screens/vehicle_health/vehicle_health_screen.dart';
 import 'screens/device_pairing/device_pairing_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'widgets/common/app_shell.dart';
@@ -20,7 +19,6 @@ abstract class AppRoutes {
   static const dashboard     = '/dashboard';
   static const trips         = '/trips';
   static const reports       = '/reports';
-  static const vehicleHealth = '/health';
   static const devicePairing = '/pairing';
   static const profile       = '/profile';
 }
@@ -68,10 +66,6 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.reports,
           builder: (context, state) => const ReportsScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.vehicleHealth,
-          builder: (context, state) => const VehicleHealthScreen(),
         ),
         GoRoute(
           path: AppRoutes.profile,

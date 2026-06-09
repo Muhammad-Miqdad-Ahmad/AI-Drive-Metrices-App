@@ -86,26 +86,33 @@ class EventBadge extends StatelessWidget {
           color: AppColors.danger,
           bg: AppColors.dangerLight,
         );
-      case TripEventType.sharpTurn:
+      case TripEventType.rightTurn:
         return const _EventStyle(
           icon: Icons.turn_right_rounded,
-          label: 'Sharp Turn',
+          label: 'Right Turn',
           color: AppColors.warning,
           bg: AppColors.warningLight,
         );
-      case TripEventType.speeding:
+      case TripEventType.leftTurn:
         return const _EventStyle(
-          icon: Icons.speed_rounded,
-          label: 'Speeding',
-          color: AppColors.danger,
-          bg: AppColors.dangerLight,
+          icon: Icons.turn_left_rounded,
+          label: 'Left Turn',
+          color: AppColors.warning,
+          bg: AppColors.warningLight,
         );
-      case TripEventType.collision:
+      case TripEventType.idle:
         return const _EventStyle(
-          icon: Icons.warning_rounded,
-          label: 'Collision',
-          color: AppColors.danger,
-          bg: AppColors.dangerLight,
+          icon: Icons.pause_circle_outline_rounded,
+          label: 'Idle',
+          color: AppColors.warning,
+          bg: AppColors.warningLight,
+        );
+      case TripEventType.normalDriving:
+        return const _EventStyle(
+          icon: Icons.check_circle_outline_rounded,
+          label: 'Normal',
+          color: AppColors.warning,
+          bg: AppColors.warningLight,
         );
       case TripEventType.hardAccel:
         return const _EventStyle(

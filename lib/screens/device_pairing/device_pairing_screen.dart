@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/storage/local_storage_service.dart';
+
+// ─── The hardcoded device token must match what is flashed on the STM32. ───
+// This is used as the Supabase filter for all trip queries.
+// Change this to match your actual STM32 DEVICE_TOKEN #define.
+const _kHardcodedDeviceToken = 'stm32-abc-123';
 
 class DevicePairingScreen extends StatefulWidget {
   const DevicePairingScreen({super.key});
@@ -14,6 +20,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
   bool _scanning = false;
   bool _connected = false;
   String? _connectedDevice;
+  String? _savedToken;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
@@ -29,6 +36,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
     _pulseAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+    _loadSavedToken();
   }
 
   @override
@@ -37,21 +45,33 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
     super.dispose();
   }
 
+  Future<void> _loadSavedToken() async {
+    final token = await LocalStorageService.getDeviceToken();
+    if (mounted) {
+      setState(() {
+        _savedToken = token;
+        if (token != null) {
+          _connected = true;
+          _connectedDevice = token;
+        }
+      });
+    }
+  }
+
   Future<void> _startScan() async {
     setState(() {
       _scanning = true;
       _devices.clear();
     });
 
-    // Simulate BLE scan with mock devices
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) {
       setState(() {
         _devices.addAll([
           const _BLEDevice(
-              name: 'DriveMetrics-A1B2', rssi: -62, id: '00:1A:7D:DA:71:13'),
+              name: 'DriveMetrics-A1B2', rssi: -62, id: _kHardcodedDeviceToken),
           const _BLEDevice(
-              name: 'DriveMetrics-C3D4', rssi: -75, id: '00:1A:7D:DA:71:14'),
+              name: 'DriveMetrics-C3D4', rssi: -75, id: 'stm32-xyz-789'),
         ]);
       });
     }
@@ -59,31 +79,42 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
     if (mounted) setState(() => _scanning = false);
   }
 
+  /// Connect to the device — saves its token to local storage so all
+  /// Supabase queries in the app are automatically scoped to it.
   Future<void> _connect(_BLEDevice device) async {
     setState(() => _scanning = true);
     await Future.delayed(const Duration(milliseconds: 1500));
+
     if (mounted) {
+      // Save the device token — this is the key integration point.
+      // The device.id must match the DEVICE_TOKEN hardcoded on the STM32.
+      await LocalStorageService.saveDeviceToken(device.id);
+
+      if (!mounted) return;
       setState(() {
         _scanning = false;
         _connected = true;
-        _connectedDevice = device.name;
+        _connectedDevice = device.id;
+        _savedToken = device.id;
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Connected to ${device.name}'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
   }
 
-  void _disconnect() {
+  Future<void> _disconnect() async {
+    await LocalStorageService.clearDeviceToken();
     setState(() {
       _connected = false;
       _connectedDevice = null;
+      _savedToken = null;
       _devices.clear();
     });
   }
@@ -101,7 +132,6 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // BLE visual
             _BLEVisual(
               scanning: _scanning,
               connected: _connected,
@@ -109,14 +139,12 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
             ),
             const SizedBox(height: 24),
 
-            // Status card
             if (_connected)
               _ConnectedCard(
-                deviceName: _connectedDevice!,
+                deviceName: _connectedDevice ?? _savedToken ?? 'STM32 Device',
                 onDisconnect: _disconnect,
               )
             else ...[
-              // Scan button
               ElevatedButton.icon(
                 onPressed: _scanning ? null : _startScan,
                 icon: _scanning
@@ -130,7 +158,6 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
               ),
             ],
 
-            // Device list
             if (_devices.isNotEmpty && !_connected) ...[
               const SizedBox(height: 24),
               const Text('Nearby Devices', style: AppTextStyles.h3),
@@ -148,14 +175,39 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
 
             const SizedBox(height: 24),
 
-            // Info box
+            // Token info (visible when connected for debugging)
+            if (_savedToken != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.vpn_key_outlined,
+                        size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Device token: $_savedToken',
+                        style: AppTextStyles.monoSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // How-to guide
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,19 +227,16 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
                   const SizedBox(height: 10),
                   const _HelpStep(
                       number: '1',
-                      text:
-                          'Power on your Drive Metrics AI device (hold button for 3 seconds)'),
+                      text: 'Power on your Drive Metrics AI device (hold button for 3 seconds)'),
                   const _HelpStep(
                       number: '2',
                       text: 'Ensure Bluetooth is enabled on your phone'),
                   const _HelpStep(
                       number: '3',
-                      text:
-                          'Tap "Scan for Devices" and select your device from the list'),
+                      text: 'Tap "Scan for Devices" and select your device from the list'),
                   const _HelpStep(
                       number: '4',
-                      text:
-                          'The LED on your device will turn solid blue when connected'),
+                      text: 'The LED on your device will turn solid blue when connected'),
                 ],
               ),
             ),
@@ -197,6 +246,8 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
     );
   }
 }
+
+// ── Sub-widgets (unchanged visually, just wired to real data) ──────────────
 
 class _BLEVisual extends StatelessWidget {
   final bool scanning;
@@ -234,18 +285,14 @@ class _BLEVisual extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                gradient: connected
-                    ? AppColors.safeGradient
-                    : AppColors.primaryGradient,
+                gradient: connected ? AppColors.safeGradient : AppColors.primaryGradient,
                 shape: BoxShape.circle,
                 boxShadow: connected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ]
+                    ? [BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      )]
                     : AppColors.primaryShadow,
               ),
               child: Icon(
@@ -280,25 +327,24 @@ class _ConnectedCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_rounded,
-              color: AppColors.success, size: 24),
+          const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Connected',
-                    style: AppTextStyles.labelLarge
-                        .copyWith(color: AppColors.success)),
-                Text(deviceName, style: AppTextStyles.bodySmall),
+                Text('Device Paired',
+                    style: AppTextStyles.labelLarge.copyWith(color: AppColors.success)),
+                Text(deviceName,
+                    style: AppTextStyles.monoSmall,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
           TextButton(
             onPressed: onDisconnect,
-            child: Text('Disconnect',
-                style: AppTextStyles.labelMedium
-                    .copyWith(color: AppColors.danger)),
+            child: Text('Unpair',
+                style: AppTextStyles.labelMedium.copyWith(color: AppColors.danger)),
           ),
         ],
       ),
@@ -337,8 +383,7 @@ class _DeviceTile extends StatelessWidget {
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.memory_rounded,
-                size: 20, color: AppColors.primary),
+            child: const Icon(Icons.memory_rounded, size: 20, color: AppColors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -361,9 +406,7 @@ class _DeviceTile extends StatelessWidget {
                     height: 8.0 + (i * 4),
                     margin: const EdgeInsets.only(left: 2),
                     decoration: BoxDecoration(
-                      color: i < _signalBars
-                          ? AppColors.primary
-                          : AppColors.border,
+                      color: i < _signalBars ? AppColors.primary : AppColors.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -373,16 +416,14 @@ class _DeviceTile extends StatelessWidget {
               GestureDetector(
                 onTap: onConnect,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: AppColors.primaryShadow,
                   ),
                   child: Text('Pair',
-                      style: AppTextStyles.buttonMedium
-                          .copyWith(color: Colors.white)),
+                      style: AppTextStyles.buttonMedium.copyWith(color: Colors.white)),
                 ),
               ),
             ],

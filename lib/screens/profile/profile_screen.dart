@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/services/supabase_service.dart';
 import '../../core/storage/local_storage_service.dart';
 import '../../models/models.dart';
 import '../../app_router.dart';
@@ -18,15 +18,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _user;
   bool _loadingUser = true;
 
+  // Live stats
+  int    _totalTrips   = 0;
+  double _totalKm      = 0;
+  double _avgScore     = 0;
+  String _bestGrade    = '—';
+  bool   _loadingStats = true;
+
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadStats();
   }
 
   Future<void> _loadUser() async {
     final user = await LocalStorageService.getCurrentUser();
     if (mounted) setState(() { _user = user; _loadingUser = false; });
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final token = await LocalStorageService.getDeviceToken();
+      if (token == null) {
+        if (mounted) setState(() => _loadingStats = false);
+        return;
+      }
+      final svc   = SupabaseService(deviceToken: token);
+      final stats = await svc.getDashboardStats();
+
+      if (mounted) {
+        setState(() {
+          _totalTrips   = stats.totalTrips;
+          _totalKm      = stats.totalKm;
+          _avgScore     = stats.avgScore;
+          _bestGrade    = DriverScoreModel.gradeFromScore(stats.bestScore);
+          _loadingStats = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingStats = false);
+    }
   }
 
   Future<void> _logout() async {
@@ -52,12 +84,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showEditDeviceId() {
+    if (_user == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => _EditDeviceIdDialog(
+        currentDeviceId: _user!.deviceId ?? '',
+        onSaved: () {
+          _loadUser();
+          _loadStats(); // Reload stats for new device
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final trips    = MockDataService.trips;
-    final avgScore = trips.map((t) => t.score.overall).reduce((a, b) => a + b) /
-        trips.length;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -75,8 +117,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  _ProfileHeader(user: _user, avgScore: avgScore),
-                  _StatsRow(trips: trips),
+                  _ProfileHeader(user: _user, avgScore: _avgScore),
+                  _StatsRow(
+                    totalTrips: _totalTrips,
+                    totalKm: _totalKm,
+                    bestGrade: _bestGrade,
+                    loading: _loadingStats,
+                  ),
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -112,26 +159,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _SettingsCard(
                           items: [
                             _SettingsItem(
-                              icon: Icons.bluetooth_rounded,
-                              label: 'Paired Device',
-                              subtitle: 'DriveMetrics-A1B2',
-                              onTap: () => context.push(AppRoutes.devicePairing),
+                              icon: Icons.memory_rounded,
+                              label: 'Device ID',
+                              subtitle: _user?.deviceId ?? 'Not set',
+                              onTap: _showEditDeviceId,
                               trailing: Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: AppColors.successLight,
+                                  color: (_user?.deviceId != null &&
+                                          _user!.deviceId!.isNotEmpty)
+                                      ? AppColors.successLight
+                                      : AppColors.danger
+                                          .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text('Connected',
-                                    style: AppTextStyles.labelSmall
-                                        .copyWith(color: AppColors.success)),
+                                child: Text(
+                                  (_user?.deviceId != null &&
+                                          _user!.deviceId!.isNotEmpty)
+                                      ? 'Active'
+                                      : 'None',
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: (_user?.deviceId != null &&
+                                            _user!.deviceId!.isNotEmpty)
+                                        ? AppColors.success
+                                        : AppColors.danger,
+                                  ),
+                                ),
                               ),
-                            ),
-                            _SettingsItem(
-                              icon: Icons.tune_rounded,
-                              label: 'Sensor Calibration',
-                              onTap: () {},
                             ),
                           ],
                         ),
@@ -213,6 +268,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 }
 
+// ─── Profile Header ────────────────────────────────────────────────────────
+
+class _ProfileHeader extends StatelessWidget {
+  final UserModel? user;
+  final double avgScore;
+  const _ProfileHeader({required this.user, required this.avgScore});
+
+  @override
+  Widget build(BuildContext context) {
+    final name     = user?.fullName ?? 'User';
+    final email    = user?.email    ?? '';
+    final initials = name
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase())
+        .take(2)
+        .join();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              shape: BoxShape.circle,
+              boxShadow: AppColors.primaryShadow,
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: AppTextStyles.h2.copyWith(color: Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(name, style: AppTextStyles.h2),
+          const SizedBox(height: 2),
+          Text(email, style: AppTextStyles.bodyMedium),
+          const SizedBox(height: 10),
+          if (avgScore > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.scoreColorLight(avgScore),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Avg Score: ${avgScore.toInt()} / 100',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.scoreColor(avgScore),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Stats Row ─────────────────────────────────────────────────────────────
+
+class _StatsRow extends StatelessWidget {
+  final int    totalTrips;
+  final double totalKm;
+  final String bestGrade;
+  final bool   loading;
+
+  const _StatsRow({
+    required this.totalTrips,
+    required this.totalKm,
+    required this.bestGrade,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: loading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : Row(
+              children: [
+                _StatItem(value: '$totalTrips',                   label: 'Trips'),
+                _Divider(),
+                _StatItem(value: totalKm.toStringAsFixed(0),      label: 'Total km'),
+                _Divider(),
+                _StatItem(value: bestGrade,                       label: 'Best Grade'),
+              ],
+            ),
+    );
+  }
+}
+
+// ─── Shared small widgets ──────────────────────────────────────────────────
+
+class _StatItem extends StatelessWidget {
+  final String value;
+  final String label;
+  const _StatItem({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: AppTextStyles.h2),
+          const SizedBox(height: 2),
+          Text(label, style: AppTextStyles.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 36, color: AppColors.border);
+}
+
 // ─── Edit Profile Dialog ───────────────────────────────────────────────────
 
 class _EditProfileDialog extends StatefulWidget {
@@ -252,6 +444,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
     final err = await LocalStorageService.updateProfile(
       fullName: _nameCtrl.text.trim(),
       email:    _emailCtrl.text.trim(),
+      deviceId: widget.user.deviceId,
     );
 
     if (!mounted) return;
@@ -309,8 +502,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
           onPressed: _loading ? null : _save,
           child: _loading
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 16, height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Save'),
         ),
@@ -388,15 +580,15 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               decoration: InputDecoration(
                 labelText: 'Current Password',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+                  icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       size: 18, color: AppColors.textTertiary),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Required' : null,
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -430,8 +622,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
           onPressed: _loading ? null : _save,
           child: _loading
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 16, height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Update'),
         ),
@@ -440,125 +631,122 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   }
 }
 
-// ─── Sub-widgets ───────────────────────────────────────────────────────────
+// ─── Edit Device ID Dialog ─────────────────────────────────────────────────
 
-class _ProfileHeader extends StatelessWidget {
-  final UserModel? user;
-  final double avgScore;
-  const _ProfileHeader({required this.user, required this.avgScore});
+class _EditDeviceIdDialog extends StatefulWidget {
+  final String currentDeviceId;
+  final VoidCallback onSaved;
+  const _EditDeviceIdDialog({
+    required this.currentDeviceId,
+    required this.onSaved,
+  });
+
+  @override
+  State<_EditDeviceIdDialog> createState() => _EditDeviceIdDialogState();
+}
+
+class _EditDeviceIdDialogState extends State<_EditDeviceIdDialog> {
+  late final TextEditingController _deviceCtrl;
+  final _formKey = GlobalKey<FormState>();
+  bool _loading  = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceCtrl = TextEditingController(text: widget.currentDeviceId);
+  }
+
+  @override
+  void dispose() {
+    _deviceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+
+    final user = await LocalStorageService.getCurrentUser();
+    if (user == null) {
+      setState(() { _loading = false; _error = 'Not logged in.'; });
+      return;
+    }
+
+    final err = await LocalStorageService.updateProfile(
+      fullName: user.fullName,
+      email:    user.email,
+      deviceId: _deviceCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (err != null) {
+      setState(() => _error = err);
+    } else {
+      widget.onSaved();
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Device ID updated — data refreshed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final name  = user?.fullName ?? 'User';
-    final email = user?.email    ?? '';
-    final initials = name
-        .split(' ')
-        .where((w) => w.isNotEmpty)
-        .map((w) => w[0].toUpperCase())
-        .take(2)
-        .join();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              shape: BoxShape.circle,
-              boxShadow: AppColors.primaryShadow,
+    return AlertDialog(
+      title: const Text('Change Device ID', style: AppTextStyles.h3),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter the ID of your Drive Metrics device. '
+              'Changing it will load data for the new device.',
+              style: AppTextStyles.bodySmall,
             ),
-            child: Center(
-              child: Text(
-                initials,
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
+            const SizedBox(height: 16),
+            if (_error != null) ...[
+              Text(_error!,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.danger)),
+              const SizedBox(height: 12),
+            ],
+            TextFormField(
+              controller: _deviceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Device ID',
+                hintText: 'e.g. STM32_DEVICE_001',
+                prefixIcon: Icon(Icons.memory_rounded, size: 20),
               ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(name, style: AppTextStyles.h2),
-          const SizedBox(height: 2),
-          Text(email, style: AppTextStyles.bodyMedium),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.scoreColorLight(avgScore),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Avg Score: ${avgScore.toInt()} / 100',
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.scoreColor(avgScore),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _loading ? null : _save,
+          child: _loading
+              ? const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Save'),
+        ),
+      ],
     );
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  final List trips;
-  const _StatsRow({required this.trips});
-
-  @override
-  Widget build(BuildContext context) {
-    final totalKm =
-        trips.fold(0.0, (s, t) => s + (t.distanceKm as double));
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          _StatItem(value: '${trips.length}', label: 'Trips'),
-          _Divider(),
-          _StatItem(value: totalKm.toStringAsFixed(0), label: 'Total km'),
-          _Divider(),
-          const _StatItem(value: 'A', label: 'Best Grade'),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-  const _StatItem({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: AppTextStyles.h2),
-          const SizedBox(height: 2),
-          Text(label, style: AppTextStyles.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 36, color: AppColors.border);
-  }
-}
+// ─── Settings Card / Item ──────────────────────────────────────────────────
 
 class _SettingsCard extends StatelessWidget {
   final List<_SettingsItem> items;

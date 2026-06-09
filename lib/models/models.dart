@@ -4,6 +4,7 @@ class UserModel {
   final String fullName;
   final String email;
   final String? avatarUrl;
+  final String? deviceId;
   final DateTime createdAt;
 
   const UserModel({
@@ -11,6 +12,7 @@ class UserModel {
     required this.fullName,
     required this.email,
     this.avatarUrl,
+    this.deviceId,
     required this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class UserModel {
         fullName: json['full_name'] as String,
         email: json['email'] as String,
         avatarUrl: json['avatar_url'] as String?,
+        deviceId: json['device_id'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String),
       );
 
@@ -27,6 +30,7 @@ class UserModel {
         'full_name': fullName,
         'email': email,
         'avatar_url': avatarUrl,
+        'device_id': deviceId,
         'created_at': createdAt.toIso8601String(),
       };
 
@@ -34,54 +38,76 @@ class UserModel {
     String? fullName,
     String? email,
     String? avatarUrl,
+    String? deviceId,
   }) =>
       UserModel(
         id: id,
         fullName: fullName ?? this.fullName,
         email: email ?? this.email,
         avatarUrl: avatarUrl ?? this.avatarUrl,
+        deviceId: deviceId ?? this.deviceId,
         createdAt: createdAt,
       );
 }
 
 // ─── Driver Score Model ────────────────────────────────────────────────────
 class DriverScoreModel {
-  final double overall;        // 0–100
+  final double overall;
   final double braking;
   final double cornering;
-  final double speeding;
+  final double acceleration;
   final double smoothness;
-  final String grade;          // A, B, C, D, F
+  final String grade;
+  final int harshEventCount;
 
   const DriverScoreModel({
     required this.overall,
     required this.braking,
     required this.cornering,
-    required this.speeding,
+    required this.acceleration,
     required this.smoothness,
     required this.grade,
+    this.harshEventCount = 0,
   });
+
+  double get speeding => acceleration;
+
+  factory DriverScoreModel.fromSupabase(Map<String, dynamic> json) =>
+      DriverScoreModel(
+        overall: (json['overall'] as num?)?.toDouble() ?? 0,
+        braking: (json['braking'] as num?)?.toDouble() ?? 0,
+        cornering: (json['cornering'] as num?)?.toDouble() ?? 0,
+        acceleration: (json['acceleration'] as num?)?.toDouble() ?? 0,
+        smoothness: (json['smoothness'] as num?)?.toDouble() ?? 0,
+        grade: (json['grade'] as String?) ??
+            gradeFromScore((json['overall'] as num?)?.toDouble() ?? 0),
+        harshEventCount: (json['harsh_event_count'] as int?) ?? 0,
+      );
 
   factory DriverScoreModel.fromJson(Map<String, dynamic> json) =>
       DriverScoreModel(
         overall: (json['overall'] as num).toDouble(),
         braking: (json['braking'] as num).toDouble(),
         cornering: (json['cornering'] as num).toDouble(),
-        speeding: (json['speeding'] as num).toDouble(),
+        acceleration:
+            (json['acceleration'] as num? ?? json['speeding'] as num?)
+                    ?.toDouble() ??
+                0,
         smoothness: (json['smoothness'] as num).toDouble(),
         grade: json['grade'] as String,
+        harshEventCount: (json['harsh_event_count'] as int?) ?? 0,
       );
 
   Map<String, dynamic> toJson() => {
         'overall': overall,
         'braking': braking,
         'cornering': cornering,
-        'speeding': speeding,
+        'acceleration': acceleration,
         'smoothness': smoothness,
         'grade': grade,
+        'harsh_event_count': harshEventCount,
       };
 
-  /// Compute grade from overall score
   static String gradeFromScore(double score) {
     if (score >= 90) return 'A+';
     if (score >= 80) return 'A';
@@ -93,53 +119,65 @@ class DriverScoreModel {
 }
 
 // ─── Trip Event Model ──────────────────────────────────────────────────────
-enum TripEventType { harshBraking, sharpTurn, speeding, collision, hardAccel }
+enum TripEventType { idle, normalDriving, hardAccel, rightTurn, leftTurn, harshBraking }
 
-class TripEvent {
-  final TripEventType type;
-  final DateTime timestamp;
-  final double? value;        // e.g. deceleration g-force, speed in km/h
-  final double latitude;
-  final double longitude;
-
-  const TripEvent({
-    required this.type,
-    required this.timestamp,
-    this.value,
-    required this.latitude,
-    required this.longitude,
-  });
-
-  factory TripEvent.fromJson(Map<String, dynamic> json) => TripEvent(
-        type: TripEventType.values.byName(json['type'] as String),
-        timestamp: DateTime.parse(json['timestamp'] as String),
-        value: json['value'] != null ? (json['value'] as num).toDouble() : null,
-        latitude: (json['latitude'] as num).toDouble(),
-        longitude: (json['longitude'] as num).toDouble(),
-      );
-
-  Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'timestamp': timestamp.toIso8601String(),
-        'value': value,
-        'latitude': latitude,
-        'longitude': longitude,
-      };
-
+extension TripEventTypeX on TripEventType {
   String get label {
-    switch (type) {
-      case TripEventType.harshBraking:
-        return 'Harsh Braking';
-      case TripEventType.sharpTurn:
-        return 'Sharp Turn';
-      case TripEventType.speeding:
-        return 'Speeding';
-      case TripEventType.collision:
-        return 'Collision Detected';
-      case TripEventType.hardAccel:
-        return 'Hard Acceleration';
+    switch (this) {
+      case TripEventType.idle:          return 'Idle';
+      case TripEventType.normalDriving: return 'Normal Driving';
+      case TripEventType.hardAccel:     return 'Hard Acceleration';
+      case TripEventType.rightTurn:     return 'Right Turn';
+      case TripEventType.leftTurn:      return 'Left Turn';
+      case TripEventType.harshBraking:  return 'Harsh Braking';
     }
   }
+
+  bool get isHarsh => index >= 2;
+}
+
+class TripEvent {
+  final String id;
+  final TripEventType type;
+  final DateTime timestamp;
+  final double confidence;
+  final double latitude;
+  final double longitude;
+  final double? speedKmh;
+  final double? accelX;
+  final double? accelY;
+  final double? accelZ;
+
+  const TripEvent({
+    required this.id,
+    required this.type,
+    required this.timestamp,
+    required this.confidence,
+    required this.latitude,
+    required this.longitude,
+    this.speedKmh,
+    this.accelX,
+    this.accelY,
+    this.accelZ,
+  });
+
+  factory TripEvent.fromSupabase(Map<String, dynamic> json) {
+    final label = (json['event_label'] as int?) ?? 1;
+    return TripEvent(
+      id: json['id'] as String,
+      type: TripEventType.values[label.clamp(0, TripEventType.values.length - 1)],
+      timestamp: DateTime.parse(json['recorded_at'] as String),
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
+      speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
+      accelX: (json['accel_x'] as num?)?.toDouble(),
+      accelY: (json['accel_y'] as num?)?.toDouble(),
+      accelZ: (json['accel_z'] as num?)?.toDouble(),
+    );
+  }
+
+  String get label => type.label;
 }
 
 // ─── Trip Model ────────────────────────────────────────────────────────────
@@ -153,7 +191,6 @@ class TripModel {
   final DriverScoreModel score;
   final List<TripEvent> events;
   final List<LatLngPoint> route;
-  final bool isActive;
 
   const TripModel({
     required this.id,
@@ -163,9 +200,8 @@ class TripModel {
     required this.maxSpeedKmh,
     required this.avgSpeedKmh,
     required this.score,
-    required this.events,
-    required this.route,
-    this.isActive = false,
+    this.events = const [],
+    this.route = const [],
   });
 
   Duration get duration {
@@ -175,83 +211,99 @@ class TripModel {
 
   String get durationLabel {
     final d = duration;
-    if (d.inHours > 0) {
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
+    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
     return '${d.inMinutes}m';
   }
 
+  int get harshEventCount => events.where((e) => e.type.isHarsh).length;
   int get harshBrakingCount =>
       events.where((e) => e.type == TripEventType.harshBraking).length;
-  int get sharpTurnCount =>
-      events.where((e) => e.type == TripEventType.sharpTurn).length;
-  int get speedingCount =>
-      events.where((e) => e.type == TripEventType.speeding).length;
+  int get sharpTurnCount => events
+      .where((e) =>
+          e.type == TripEventType.leftTurn || e.type == TripEventType.rightTurn)
+      .length;
+  int get hardAccelCount =>
+      events.where((e) => e.type == TripEventType.hardAccel).length;
 
-  factory TripModel.fromJson(Map<String, dynamic> json) => TripModel(
-        id: json['id'] as String,
-        startTime: DateTime.parse(json['start_time'] as String),
-        endTime: json['end_time'] != null
-            ? DateTime.parse(json['end_time'] as String)
-            : null,
-        distanceKm: (json['distance_km'] as num).toDouble(),
-        maxSpeedKmh: (json['max_speed_kmh'] as num).toDouble(),
-        avgSpeedKmh: (json['avg_speed_kmh'] as num).toDouble(),
-        score: DriverScoreModel.fromJson(
-            json['score'] as Map<String, dynamic>),
-        events: (json['events'] as List)
-            .map((e) => TripEvent.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        route: (json['route'] as List)
-            .map((p) => LatLngPoint.fromJson(p as Map<String, dynamic>))
-            .toList(),
-        isActive: json['is_active'] as bool? ?? false,
-      );
+  factory TripModel.fromSupabase(
+    Map<String, dynamic> json, {
+    List<TripEvent>? events,
+    List<LatLngPoint>? route,
+  }) {
+    final scoreJson = json['driver_scores'];
+    final score = scoreJson != null
+        ? DriverScoreModel.fromSupabase(
+            scoreJson is List
+                ? scoreJson.first as Map<String, dynamic>
+                : scoreJson as Map<String, dynamic>,
+          )
+        : const DriverScoreModel(
+            overall: 0,
+            braking: 0,
+            cornering: 0,
+            acceleration: 0,
+            smoothness: 0,
+            grade: 'N/A',
+          );
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'start_time': startTime.toIso8601String(),
-        'end_time': endTime?.toIso8601String(),
-        'distance_km': distanceKm,
-        'max_speed_kmh': maxSpeedKmh,
-        'avg_speed_kmh': avgSpeedKmh,
-        'score': score.toJson(),
-        'events': events.map((e) => e.toJson()).toList(),
-        'route': route.map((p) => p.toJson()).toList(),
-        'is_active': isActive,
-      };
+    return TripModel(
+      id: json['id'] as String,
+      startTime: DateTime.parse(json['start_time'] as String),
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'] as String)
+          : null,
+      distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
+      maxSpeedKmh: (json['max_speed_kmh'] as num?)?.toDouble() ?? 0,
+      avgSpeedKmh: (json['avg_speed_kmh'] as num?)?.toDouble() ?? 0,
+      score: score,
+      events: events ?? [],
+      route: route ?? [],
+    );
+  }
 }
 
 // ─── LatLngPoint ──────────────────────────────────────────────────────────
 class LatLngPoint {
   final double latitude;
   final double longitude;
+  final double? speedKmh;
   final DateTime? timestamp;
 
   const LatLngPoint({
     required this.latitude,
     required this.longitude,
+    this.speedKmh,
     this.timestamp,
   });
+
+  factory LatLngPoint.fromSupabase(Map<String, dynamic> json) => LatLngPoint(
+        latitude: (json['latitude'] as num).toDouble(),
+        longitude: (json['longitude'] as num).toDouble(),
+        speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
+        timestamp: json['recorded_at'] != null
+            ? DateTime.parse(json['recorded_at'] as String)
+            : null,
+      );
 
   factory LatLngPoint.fromJson(Map<String, dynamic> json) => LatLngPoint(
         latitude: (json['lat'] as num).toDouble(),
         longitude: (json['lng'] as num).toDouble(),
-        timestamp: json['ts'] != null
-            ? DateTime.parse(json['ts'] as String)
-            : null,
+        speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
+        timestamp:
+            json['ts'] != null ? DateTime.parse(json['ts'] as String) : null,
       );
 
   Map<String, dynamic> toJson() => {
         'lat': latitude,
         'lng': longitude,
+        'speed_kmh': speedKmh,
         'ts': timestamp?.toIso8601String(),
       };
 }
 
 // ─── Vehicle Health Model ─────────────────────────────────────────────────
 class VehicleHealthModel {
-  final double overall;         // 0–100
+  final double overall;
   final double engineHealth;
   final double brakeWear;
   final double suspensionStress;
@@ -281,22 +333,12 @@ class VehicleHealthModel {
             .map((i) => HealthInsight.fromJson(i as Map<String, dynamic>))
             .toList(),
       );
-
-  Map<String, dynamic> toJson() => {
-        'overall': overall,
-        'engine_health': engineHealth,
-        'brake_wear': brakeWear,
-        'suspension_stress': suspensionStress,
-        'tyre_pressure_score': tyrePressureScore,
-        'last_updated': lastUpdated.toIso8601String(),
-        'insights': insights.map((i) => i.toJson()).toList(),
-      };
 }
 
 class HealthInsight {
   final String title;
   final String description;
-  final String severity; // 'info' | 'warning' | 'critical'
+  final String severity;
 
   const HealthInsight({
     required this.title,

@@ -13,11 +13,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey      = GlobalKey<FormState>();
-  final _nameCtrl     = TextEditingController();
-  final _emailCtrl    = TextEditingController();
-  final _passCtrl     = TextEditingController();
-  final _confirmCtrl  = TextEditingController();
+  final _formKey     = GlobalKey<FormState>();
+  final _nameCtrl    = TextEditingController();
+  final _emailCtrl   = TextEditingController();
+  final _passCtrl    = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  final _deviceCtrl  = TextEditingController();
   bool _obscure  = true;
   bool _loading  = false;
   String? _errorMsg;
@@ -28,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
+    _deviceCtrl.dispose();
     super.dispose();
   }
 
@@ -39,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       fullName: _nameCtrl.text.trim(),
       email:    _emailCtrl.text.trim(),
       password: _passCtrl.text,
+      deviceId: _deviceCtrl.text.trim(),
     );
 
     if (!mounted) return;
@@ -47,7 +50,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (error != null) {
       setState(() => _errorMsg = error);
     } else {
-      context.go(AppRoutes.dashboard);
+      // Navigate to sign in after successful registration
+      context.go(AppRoutes.login);
     }
   }
 
@@ -110,6 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    // Full Name
                     TextFormField(
                       controller: _nameCtrl,
                       textCapitalization: TextCapitalization.words,
@@ -127,6 +132,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Email
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
@@ -142,6 +149,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Device ID
+                    TextFormField(
+                      controller: _deviceCtrl,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Device ID',
+                        hintText: 'e.g. STM32_DEVICE_001',
+                        prefixIcon: Icon(Icons.memory_rounded, size: 20),
+                        helperText: 'Enter the ID printed on your Drive Metrics device',
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Enter your device ID';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
                     TextFormField(
                       controller: _passCtrl,
                       obscureText: _obscure,
@@ -169,6 +197,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Confirm Password
                     TextFormField(
                       controller: _confirmCtrl,
                       obscureText: _obscure,
@@ -186,6 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: 28),
+
                     ElevatedButton(
                       onPressed: _loading ? null : _register,
                       child: _loading

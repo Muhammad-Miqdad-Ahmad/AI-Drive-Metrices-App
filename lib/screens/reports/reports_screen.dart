@@ -1,23 +1,52 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/services/supabase_service.dart';
+import '../../core/storage/local_storage_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/models.dart';
 import '../../widgets/common/score_gauge_widget.dart';
 
-class ReportsScreen extends StatelessWidget {
+class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final trips = MockDataService.trips;
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
 
+class _ReportsScreenState extends State<ReportsScreen> {
+  bool _loading = true;
+  String? _error;
+  List<TripModel> _trips = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final token = await LocalStorageService.getDeviceToken();
+      if (token == null) {
+        setState(() { _trips = []; _loading = false; });
+        return;
+      }
+      final svc = SupabaseService(deviceToken: token);
+      final trips = await svc.getRecentTrips(limit: 100);
+      setState(() { _trips = trips; _loading = false; });
+    } catch (e) {
+      setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -31,15 +60,58 @@ class ReportsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.separated(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.danger),
+            const SizedBox(height: 12),
+            Text(_error!, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _load, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_trips.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.description_outlined, size: 48, color: AppColors.textTertiary),
+            SizedBox(height: 12),
+            Text('No reports yet', style: AppTextStyles.h3),
+            SizedBox(height: 8),
+            Text('Reports will appear after your first trip syncs.',
+                style: AppTextStyles.bodySmall),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      child: ListView.separated(
         padding: const EdgeInsets.all(20),
-        itemCount: trips.length,
+        itemCount: _trips.length,
         separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (context, index) => _ReportCard(trip: trips[index]),
+        itemBuilder: (context, index) => _ReportCard(trip: _trips[index]),
       ),
     );
   }
 }
+
+// ── Report card with PDF download ─────────────────────────────────────────
 
 class _ReportCard extends StatefulWidget {
   final TripModel trip;
@@ -54,12 +126,10 @@ class _ReportCardState extends State<_ReportCard> {
 
   Future<void> _downloadReport() async {
     setState(() => _isDownloading = true);
-
     try {
       final pdfBytes = await _generateTripReportPdf(widget.trip);
       final fileName =
           'trip_report_${widget.trip.id}_${widget.trip.startTime.millisecondsSinceEpoch}.pdf';
-
       await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
     } catch (e) {
       if (mounted) {
@@ -77,8 +147,6 @@ class _ReportCardState extends State<_ReportCard> {
 
   Future<Uint8List> _generateTripReportPdf(TripModel trip) async {
     final pdf = pw.Document();
-
-    // Brand colors
     const brandBlue = PdfColor.fromInt(0xFF0057FF);
     const textDark = PdfColor.fromInt(0xFF0D1B3E);
     const textGrey = PdfColor.fromInt(0xFF5A6B8A);
@@ -97,436 +165,121 @@ class _ReportCardState extends State<_ReportCard> {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
         build: (context) => [
-          // ── Header ──────────────────────────────────────────────
-          pw.Container(
-            padding: const pw.EdgeInsets.all(20),
-            decoration: pw.BoxDecoration(
-              color: brandBlue,
-              borderRadius: pw.BorderRadius.circular(12),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'TRIP REPORT',
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontSize: 22,
-                        fontWeight: pw.FontWeight.bold,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      DateFormatter.fullDateTime(trip.startTime),
-                      style: const pw.TextStyle(
-                        color: PdfColor.fromInt(0xFFCCDDFF),
-                        fontSize: 11,
-                      ),
-                    ),
-                    pw.Text(
-                      'Trip ID: ${trip.id}',
-                      style: const pw.TextStyle(
-                        color: PdfColor.fromInt(0xFFCCDDFF),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-                // Score badge
-                pw.Container(
-                  width: 72,
-                  height: 72,
-                  decoration: pw.BoxDecoration(
-                    color: scoreColor,
-                    shape: pw.BoxShape.circle,
-                  ),
-                  child: pw.Center(
-                    child: pw.Column(
-                      mainAxisAlignment: pw.MainAxisAlignment.center,
-                      children: [
-                        pw.Text(
-                          score.toInt().toString(),
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 22,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                        pw.Text(
-                          'Grade ${trip.score.grade}',
-                          style: const pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 24),
-
-          // ── Trip Summary ─────────────────────────────────────────
-          pw.Text(
-            'Trip Summary',
-            style: pw.TextStyle(
-              color: textDark,
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(
-              color: bgLight,
-              borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: borderColor),
-            ),
-            child: pw.Table(
-              children: [
-                _pdfTableRow(
-                    'Distance',
-                    '${trip.distanceKm.toStringAsFixed(1)} km',
-                    textDark,
-                    textGrey),
-                _pdfTableRow(
-                    'Duration', trip.durationLabel, textDark, textGrey),
-                _pdfTableRow('Max Speed', '${trip.maxSpeedKmh.toInt()} km/h',
-                    textDark, textGrey),
-                _pdfTableRow(
-                    'Avg Speed',
-                    '${trip.avgSpeedKmh.toStringAsFixed(1)} km/h',
-                    textDark,
-                    textGrey),
-                _pdfTableRow(
-                  'Start Time',
-                  DateFormatter.time(trip.startTime),
-                  textDark,
-                  textGrey,
-                ),
-                if (trip.endTime != null)
-                  _pdfTableRow(
-                    'End Time',
-                    DateFormatter.time(trip.endTime!),
-                    textDark,
-                    textGrey,
-                  ),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 20),
-
-          // ── Driver Score Breakdown ────────────────────────────────
-          pw.Text(
-            'Driver Score Breakdown',
-            style: pw.TextStyle(
-              color: textDark,
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(
-              color: bgLight,
-              borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: borderColor),
-            ),
-            child: pw.Column(
-              children: [
-                _pdfScoreBar('Overall', trip.score.overall, scoreColor),
-                pw.SizedBox(height: 10),
-                _pdfScoreBar('Braking', trip.score.braking,
-                    _pdfScoreColor(trip.score.braking)),
-                pw.SizedBox(height: 10),
-                _pdfScoreBar('Cornering', trip.score.cornering,
-                    _pdfScoreColor(trip.score.cornering)),
-                pw.SizedBox(height: 10),
-                _pdfScoreBar('Speeding', trip.score.speeding,
-                    _pdfScoreColor(trip.score.speeding)),
-                pw.SizedBox(height: 10),
-                _pdfScoreBar('Smoothness', trip.score.smoothness,
-                    _pdfScoreColor(trip.score.smoothness)),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 20),
-
-          // ── Safety Events ─────────────────────────────────────────
-          pw.Text(
-            'Safety Events',
-            style: pw.TextStyle(
-              color: textDark,
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(
-              color: bgLight,
-              borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: borderColor),
-            ),
-            child: trip.events.isEmpty
-                ? pw.Row(
-                    children: [
-                      pw.Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFF34C759),
-                          shape: pw.BoxShape.circle,
-                        ),
-                      ),
-                      pw.SizedBox(width: 8),
-                      pw.Text(
-                        'No safety events detected — excellent driving!',
-                        style: const pw.TextStyle(
-                          color: PdfColor.fromInt(0xFF34C759),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  )
-                : pw.Table(
-                    border: const pw.TableBorder(
-                      horizontalInside:
-                          pw.BorderSide(color: borderColor, width: 0.5),
-                    ),
-                    children: [
-                      pw.TableRow(
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFFE4E8F0),
-                        ),
-                        children: [
-                          _pdfTableHeader('Event Type'),
-                          _pdfTableHeader('Time'),
-                          _pdfTableHeader('Details'),
-                        ],
-                      ),
-                      ...trip.events.map((e) => pw.TableRow(
-                            children: [
-                              _pdfTableCell(e.label),
-                              _pdfTableCell(DateFormatter.time(e.timestamp)),
-                              _pdfTableCell(e.value != null
-                                  ? e.value!.toStringAsFixed(1)
-                                  : '—'),
-                            ],
-                          )),
-                    ],
-                  ),
-          ),
-
-          pw.SizedBox(height: 20),
-
-          // ── Event Counts ─────────────────────────────────────────
-          pw.Container(
-            padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(
-              color: bgLight,
-              borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: borderColor),
-            ),
-            child: pw.Table(
-              children: [
-                _pdfTableRow(
-                  'Harsh Braking',
-                  '${trip.harshBrakingCount}x',
-                  textDark,
-                  textGrey,
-                  valueColor: trip.harshBrakingCount == 0
-                      ? const PdfColor.fromInt(0xFF34C759)
-                      : const PdfColor.fromInt(0xFFFF3B30),
-                ),
-                _pdfTableRow(
-                  'Sharp Turns',
-                  '${trip.sharpTurnCount}x',
-                  textDark,
-                  textGrey,
-                  valueColor: trip.sharpTurnCount == 0
-                      ? const PdfColor.fromInt(0xFF34C759)
-                      : const PdfColor.fromInt(0xFFFF9500),
-                ),
-                _pdfTableRow(
-                  'Speeding Incidents',
-                  '${trip.speedingCount}x',
-                  textDark,
-                  textGrey,
-                  valueColor: trip.speedingCount == 0
-                      ? const PdfColor.fromInt(0xFF34C759)
-                      : const PdfColor.fromInt(0xFFFF3B30),
-                ),
-                _pdfTableRow(
-                  'Total Events',
-                  '${trip.events.length} detected',
-                  textDark,
-                  textGrey,
-                ),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 30),
-
-          // ── Footer ───────────────────────────────────────────────
-          pw.Divider(color: borderColor),
-          pw.SizedBox(height: 8),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text(
-                'Generated on ${DateFormatter.fullDateTime(DateTime.now())}',
-                style: const pw.TextStyle(color: textGrey, fontSize: 9),
-              ),
-              pw.Text(
-                'Confidential — Driver Report',
-                style: const pw.TextStyle(color: textGrey, fontSize: 9),
-              ),
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text('DRIVE METRICS AI',
+                    style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                        color: brandBlue)),
+                pw.SizedBox(height: 4),
+                pw.Text('Trip Safety Report',
+                    style: const pw.TextStyle(fontSize: 11, color: textGrey)),
+              ]),
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+                pw.Text(DateFormatter.tripDate(trip.startTime),
+                    style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: textDark)),
+                pw.Text(trip.durationLabel,
+                    style: const pw.TextStyle(fontSize: 10, color: textGrey)),
+              ]),
             ],
           ),
+          pw.SizedBox(height: 16),
+          pw.Divider(color: borderColor),
+          pw.SizedBox(height: 16),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              color: bgLight,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: borderColor),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _pdfStat('Safety Score',
+                    '${score.toInt()} / 100', scoreColor),
+                _pdfStat('Grade', trip.score.grade, scoreColor),
+                _pdfStat('Distance', '${trip.distanceKm.toStringAsFixed(1)} km', textDark),
+                _pdfStat('Max Speed', '${trip.maxSpeedKmh.toInt()} km/h', textDark),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text('Score Breakdown',
+              style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                  color: textDark)),
+          pw.SizedBox(height: 10),
+          ...[
+            ('Braking', trip.score.braking),
+            ('Cornering', trip.score.cornering),
+            ('Acceleration', trip.score.acceleration),
+            ('Smoothness', trip.score.smoothness),
+          ].map((s) => _pdfScoreRow(s.$1, s.$2, borderColor, textDark, textGrey)),
+          if (trip.harshEventCount > 0) ...[
+            pw.SizedBox(height: 20),
+            pw.Text('Harsh Events: ${trip.harshEventCount}',
+                style: pw.TextStyle(
+                    fontSize: 13,
+                    fontWeight: pw.FontWeight.bold,
+                    color: textDark)),
+          ],
         ],
       ),
     );
-
     return pdf.save();
   }
 
-  pw.TableRow _pdfTableRow(
-    String label,
-    String value,
-    PdfColor textDark,
-    PdfColor textGrey, {
-    PdfColor? valueColor,
-  }) {
-    return pw.TableRow(
-      children: [
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 5),
-          child: pw.Text(
-            label,
-            style: pw.TextStyle(color: textGrey, fontSize: 11),
-          ),
-        ),
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 5),
-          child: pw.Text(
-            value,
-            textAlign: pw.TextAlign.right,
-            style: pw.TextStyle(
-              color: valueColor ?? textDark,
-              fontSize: 11,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    );
+  pw.Widget _pdfStat(String label, String value, PdfColor color) {
+    return pw.Column(children: [
+      pw.Text(value,
+          style: pw.TextStyle(
+              fontSize: 16, fontWeight: pw.FontWeight.bold, color: color)),
+      pw.SizedBox(height: 2),
+      pw.Text(label,
+          style: const pw.TextStyle(fontSize: 9, color: PdfColor.fromInt(0xFF5A6B8A))),
+    ]);
   }
 
-  pw.Widget _pdfScoreBar(String label, double value, PdfColor color) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(
-              label,
-              style: const pw.TextStyle(
-                color: PdfColor.fromInt(0xFF0D1B3E),
-                fontSize: 11,
-              ),
-            ),
-            pw.Text(
-              value.toInt().toString(),
+  pw.Widget _pdfScoreRow(String label, double value, PdfColor border,
+      PdfColor textDark, PdfColor textGrey) {
+    final color = value >= 80
+        ? const PdfColor.fromInt(0xFF34C759)
+        : value >= 60
+            ? const PdfColor.fromInt(0xFFFF9500)
+            : const PdfColor.fromInt(0xFFFF3B30);
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 6),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: border),
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: 11, color: textDark)),
+          pw.Text('${value.toInt()} / 100',
               style: pw.TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 4),
-        pw.Stack(
-          children: [
-            pw.Container(
-              height: 6,
-              decoration: pw.BoxDecoration(
-                color: const PdfColor.fromInt(0xFFE4E8F0),
-                borderRadius: pw.BorderRadius.circular(3),
-              ),
-            ),
-            pw.LayoutBuilder(
-              builder: (ctx, constraints) {
-                // Safely handle if constraints or maxWidth is null
-                final maxWidth = constraints?.maxWidth ?? 400.0;
-                return pw.Container(
-                  width: maxWidth * (value / 100),
-                  height: 6,
-                  decoration: pw.BoxDecoration(
-                    color: color,
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  pw.Widget _pdfTableHeader(String text) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontSize: 10,
-          fontWeight: pw.FontWeight.bold,
-          color: const PdfColor.fromInt(0xFF0D1B3E),
-        ),
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                  color: color)),
+        ],
       ),
     );
-  }
-
-  pw.Widget _pdfTableCell(String text) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      child: pw.Text(
-        text,
-        style: const pw.TextStyle(
-          fontSize: 10,
-          color: PdfColor.fromInt(0xFF5A6B8A),
-        ),
-      ),
-    );
-  }
-
-  PdfColor _pdfScoreColor(double score) {
-    if (score >= 80) return const PdfColor.fromInt(0xFF34C759);
-    if (score >= 60) return const PdfColor.fromInt(0xFFFF9500);
-    return const PdfColor.fromInt(0xFFFF3B30);
   }
 
   @override
   Widget build(BuildContext context) {
-    final score = widget.trip.score.overall;
-    final color = AppColors.scoreColor(score);
+    final trip = widget.trip;
+    final color = AppColors.scoreColor(trip.score.overall);
 
     return Container(
       decoration: BoxDecoration(
@@ -536,131 +289,90 @@ class _ReportCardState extends State<_ReportCard> {
         boxShadow: AppColors.cardShadow,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.scoreColorLight(score),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
-                ScoreBadge(score: score, size: 52),
+                ScoreGaugeWidget(score: trip.score.overall, size: 64, showLabel: false),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Trip Report',
-                        style: AppTextStyles.labelLarge,
-                      ),
+                      Text(DateFormatter.tripDate(trip.startTime),
+                          style: AppTextStyles.labelLarge),
                       Text(
-                        DateFormatter.fullDateTime(widget.trip.startTime),
+                        '${trip.durationLabel}  ·  ${trip.distanceKm.toStringAsFixed(1)} km',
                         style: AppTextStyles.bodySmall,
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
+                    color: AppColors.scoreColorLight(trip.score.overall),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Grade ${widget.trip.score.grade}',
-                    style: AppTextStyles.labelMedium.copyWith(color: color),
+                    trip.score.grade,
+                    style: AppTextStyles.labelLarge.copyWith(color: color),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Stats
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          // Score rows
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _ReportRow(
-                  label: 'Distance',
-                  value: '${widget.trip.distanceKm.toStringAsFixed(1)} km',
-                  icon: Icons.route_rounded,
-                ),
-                _ReportRow(
-                  label: 'Duration',
-                  value: widget.trip.durationLabel,
-                  icon: Icons.timer_outlined,
-                ),
-                _ReportRow(
-                  label: 'Max Speed',
-                  value: '${widget.trip.maxSpeedKmh.toInt()} km/h',
-                  icon: Icons.speed_rounded,
-                ),
-                _ReportRow(
-                  label: 'Events',
-                  value: '${widget.trip.events.length} detected',
-                  icon: Icons.warning_amber_rounded,
-                  valueColor: widget.trip.events.isEmpty
-                      ? AppColors.success
-                      : AppColors.warning,
-                ),
-                _ReportRow(
-                  label: 'Harsh Braking',
-                  value: '${widget.trip.harshBrakingCount}x',
-                  icon: Icons.car_crash_rounded,
-                  valueColor: widget.trip.harshBrakingCount == 0
-                      ? AppColors.success
-                      : AppColors.danger,
-                ),
-                _ReportRow(
-                  label: 'Sharp Turns',
-                  value: '${widget.trip.sharpTurnCount}x',
-                  icon: Icons.turn_right_rounded,
-                  valueColor: widget.trip.sharpTurnCount == 0
-                      ? AppColors.success
-                      : AppColors.warning,
-                ),
-              ],
-            ),
-          ),
-
-          // Actions
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isDownloading ? null : _downloadReport,
-                    icon: _isDownloading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.download_outlined, size: 16),
-                    label: Text(_isDownloading ? 'Generating…' : 'Download'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 42),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.share_outlined, size: 16),
-                    label: const Text('Share'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(0, 42),
-                    ),
-                  ),
+                _ScoreChip('Braking', trip.score.braking),
+                const SizedBox(width: 8),
+                _ScoreChip('Cornering', trip.score.cornering),
+                const SizedBox(width: 8),
+                _ScoreChip('Accel', trip.score.acceleration),
+                const Spacer(),
+                Text(
+                  '${trip.harshEventCount} events',
+                  style: AppTextStyles.labelSmall
+                      .copyWith(color: AppColors.warning),
                 ),
               ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Download button
+          InkWell(
+            onTap: _isDownloading ? null : _downloadReport,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_isDownloading)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    const Icon(Icons.download_rounded,
+                        size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isDownloading ? 'Generating PDF…' : 'Download Report',
+                    style: AppTextStyles.labelMedium
+                        .copyWith(color: AppColors.primary),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -669,34 +381,26 @@ class _ReportCardState extends State<_ReportCard> {
   }
 }
 
-class _ReportRow extends StatelessWidget {
+class _ScoreChip extends StatelessWidget {
   final String label;
-  final String value;
-  final IconData icon;
-  final Color? valueColor;
-
-  const _ReportRow({
-    required this.label,
-    required this.value,
-    required this.icon,
-    this.valueColor,
-  });
+  final double value;
+  const _ScoreChip(this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 16, color: AppColors.textTertiary),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium.copyWith(
-              color: valueColor ?? AppColors.textPrimary,
-            ),
-          ),
+          Text('${value.toInt()}',
+              style: AppTextStyles.labelSmall
+                  .copyWith(color: AppColors.scoreColor(value))),
+          Text(label, style: AppTextStyles.overline),
         ],
       ),
     );

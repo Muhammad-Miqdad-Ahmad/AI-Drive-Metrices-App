@@ -2,22 +2,89 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/models.dart';
 
-/// Handles all local persistence for authentication and user profile.
+/// Handles all local persistence — user profile AND the device token
+/// used to scope every Supabase query.
 class LocalStorageService {
   LocalStorageService._();
 
   // ─── Keys ────────────────────────────────────────────────────────────────
   static const _kIsLoggedIn   = 'is_logged_in';
   static const _kCurrentUser  = 'current_user';
-  static const _kUsersMap     = 'users_map'; // email → {password, user json}
+  static const _kUsersMap     = 'users_map';
+  static const _kDeviceToken  = 'device_token';
+  static const _kSeeded       = 'default_user_seeded';
 
-  // ─── Auth ────────────────────────────────────────────────────────────────
+  // ─── Default user seed ───────────────────────────────────────────────────
 
-  /// Register a new user. Returns `null` on success, or an error string.
+  /// Ensures the default demo account exists on first run.
+  static Future<void> seedDefaultUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kSeeded) == true) return;
+
+    final raw = prefs.getString(_kUsersMap);
+    final Map<String, dynamic> users =
+        raw != null ? json.decode(raw) as Map<String, dynamic> : {};
+
+    const defaultEmail    = 'user@gmail.com';
+    const defaultPassword = '111111';
+    const defaultDeviceId = 'STM32_DEVICE_001';
+
+    if (!users.containsKey(defaultEmail)) {
+      final user = UserModel(
+        id:        'usr_default',
+        fullName:  'Demo User',
+        email:     defaultEmail,
+        deviceId:  defaultDeviceId,
+        createdAt: DateTime(2025, 1, 1),
+      );
+      users[defaultEmail] = {
+        'password': defaultPassword,
+        'user':     user.toJson(),
+      };
+      await prefs.setString(_kUsersMap, json.encode(users));
+    }
+
+    await prefs.setBool(_kSeeded, true);
+  }
+
+  // ─── Device Token ─────────────────────────────────────────────────────────
+
+  static Future<void> saveDeviceToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDeviceToken, token);
+  }
+
+  static Future<String?> getDeviceToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Prefer the token stored on the user object
+    final raw = prefs.getString(_kCurrentUser);
+    if (raw != null) {
+      final user = UserModel.fromJson(json.decode(raw) as Map<String, dynamic>);
+      if (user.deviceId != null && user.deviceId!.isNotEmpty) {
+        return user.deviceId;
+      }
+    }
+    return prefs.getString(_kDeviceToken) ?? 'STM32_DEVICE_001';
+  }
+
+  static Future<void> clearDeviceToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kDeviceToken);
+  }
+
+  static Future<bool> isDevicePaired() async {
+    final token = await getDeviceToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+
+  /// Register a new user (with device ID). Returns null on success or an error string.
   static Future<String?> register({
     required String fullName,
     required String email,
     required String password,
+    required String deviceId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kUsersMap);
@@ -29,23 +96,26 @@ class LocalStorageService {
     }
 
     final user = UserModel(
-      id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
-      fullName: fullName.trim(),
-      email: email.toLowerCase().trim(),
+      id:        'usr_${DateTime.now().millisecondsSinceEpoch}',
+      fullName:  fullName.trim(),
+      email:     email.toLowerCase().trim(),
+      deviceId:  deviceId.trim(),
       createdAt: DateTime.now(),
     );
 
     users[email.toLowerCase()] = {
       'password': password,
-      'user': user.toJson(),
+      'user':     user.toJson(),
     };
 
     await prefs.setString(_kUsersMap, json.encode(users));
+    // Save device token from the user's device ID
+    await saveDeviceToken(deviceId.trim());
     await _setCurrentUser(prefs, user);
-    return null; // success
+    return null;
   }
 
-  /// Login with email + password. Returns `null` on success, or an error string.
+  /// Login with email + password. Returns null on success or an error string.
   static Future<String?> login({
     required String email,
     required String password,
@@ -56,35 +126,32 @@ class LocalStorageService {
         raw != null ? json.decode(raw) as Map<String, dynamic> : {};
 
     final entry = users[email.toLowerCase()];
-    if (entry == null) {
-      return 'No account found with this email.';
-    }
-    if (entry['password'] as String != password) {
-      return 'Incorrect password.';
-    }
+    if (entry == null) return 'No account found with this email.';
+    if (entry['password'] as String != password) return 'Incorrect password.';
 
-    final user =
-        UserModel.fromJson(entry['user'] as Map<String, dynamic>);
+    final user = UserModel.fromJson(entry['user'] as Map<String, dynamic>);
+    // Sync device token from user's stored device ID
+    if (user.deviceId != null && user.deviceId!.isNotEmpty) {
+      await saveDeviceToken(user.deviceId!);
+    }
     await _setCurrentUser(prefs, user);
-    return null; // success
+    return null;
   }
 
-  /// Sign out the current user.
+  /// Sign out.
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kIsLoggedIn);
     await prefs.remove(_kCurrentUser);
   }
 
-  /// Whether a user is currently signed in.
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_kIsLoggedIn) ?? false;
   }
 
-  // ─── Profile ─────────────────────────────────────────────────────────────
+  // ─── Profile ──────────────────────────────────────────────────────────────
 
-  /// Get the currently logged-in user, or null.
   static Future<UserModel?> getCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kCurrentUser);
@@ -92,10 +159,10 @@ class LocalStorageService {
     return UserModel.fromJson(json.decode(raw) as Map<String, dynamic>);
   }
 
-  /// Update name and/or email for the current user.
   static Future<String?> updateProfile({
     required String fullName,
     required String email,
+    String? deviceId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getCurrentUser();
@@ -108,26 +175,33 @@ class LocalStorageService {
     final oldKey = current.email.toLowerCase();
     final newKey = email.toLowerCase().trim();
 
-    // If email changed, check it's not taken by someone else
     if (newKey != oldKey && users.containsKey(newKey)) {
       return 'That email is already in use.';
     }
 
     final password = (users[oldKey]?['password'] as String?) ?? '';
+    final newDeviceId = (deviceId != null && deviceId.trim().isNotEmpty)
+        ? deviceId.trim()
+        : current.deviceId;
+
     final updated = current.copyWith(
       fullName: fullName.trim(),
-      email: newKey,
+      email:    newKey,
+      deviceId: newDeviceId,
     );
 
-    // Re-key in users map
     users.remove(oldKey);
     users[newKey] = {'password': password, 'user': updated.toJson()};
     await prefs.setString(_kUsersMap, json.encode(users));
     await _setCurrentUser(prefs, updated);
-    return null; // success
+
+    // Update the device token when device ID changes
+    if (newDeviceId != null && newDeviceId.isNotEmpty) {
+      await saveDeviceToken(newDeviceId);
+    }
+    return null;
   }
 
-  /// Change password for the currently logged-in user.
   static Future<String?> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -140,22 +214,19 @@ class LocalStorageService {
     final Map<String, dynamic> users =
         raw != null ? json.decode(raw) as Map<String, dynamic> : {};
 
-    final key = current.email.toLowerCase();
+    final key   = current.email.toLowerCase();
     final entry = users[key];
     if (entry == null) return 'User data not found.';
     if (entry['password'] as String != currentPassword) {
       return 'Current password is incorrect.';
     }
 
-    users[key] = {
-      'password': newPassword,
-      'user': entry['user'],
-    };
+    users[key] = {'password': newPassword, 'user': entry['user']};
     await prefs.setString(_kUsersMap, json.encode(users));
-    return null; // success
+    return null;
   }
 
-  // ─── Private ─────────────────────────────────────────────────────────────
+  // ─── Private ──────────────────────────────────────────────────────────────
 
   static Future<void> _setCurrentUser(
       SharedPreferences prefs, UserModel user) async {

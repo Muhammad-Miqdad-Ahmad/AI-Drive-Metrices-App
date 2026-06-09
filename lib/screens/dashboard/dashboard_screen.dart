@@ -3,7 +3,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/services/supabase_service.dart';
+import '../../core/storage/local_storage_service.dart';
+import '../../models/models.dart';
 import '../../widgets/common/score_gauge_widget.dart';
 import '../../widgets/common/stat_card_widget.dart';
 import '../../widgets/trip/trip_card_widget.dart';
@@ -17,71 +19,123 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final user = MockDataService.currentUser;
-  final trips = MockDataService.trips;
-  final weeklyScores = MockDataService.weeklyScores;
+  // ── State ─────────────────────────────────────────────────────────────────
+  bool _loading = true;
+  String? _error;
 
-  double get avgScore =>
-      trips.map((t) => t.score.overall).reduce((a, b) => a + b) / trips.length;
+  UserModel? _user;
+  String? _deviceToken;
+  DashboardStats _stats = DashboardStats.empty();
+  List<TripModel> _recentTrips = [];
+  List<Map<String, dynamic>> _weeklyScores = _emptyWeekly();
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      _user = await LocalStorageService.getCurrentUser();
+      _deviceToken = await LocalStorageService.getDeviceToken();
+
+      if (_deviceToken == null) {
+        // No device paired yet — show empty state
+        setState(() { _loading = false; });
+        return;
+      }
+
+      final svc = SupabaseService(deviceToken: _deviceToken!);
+      final results = await Future.wait([
+        svc.getDashboardStats(),
+        svc.getRecentTrips(limit: 2),
+        svc.getWeeklyScores(),
+      ]);
+
+      setState(() {
+        _stats = results[0] as DashboardStats;
+        _recentTrips = results[1] as List<TripModel>;
+        _weeklyScores = results[2] as List<Map<String, dynamic>>;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildHeader(),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Score section
-                _buildScoreCard(),
-                const SizedBox(height: 20),
-
-                // Quick stats
-                SectionHeader(
-                  title: 'This Week',
-                  action: 'See All',
-                  onAction: () => context.go(AppRoutes.trips),
-                ),
-                const SizedBox(height: 12),
-                _buildQuickStats(),
-                const SizedBox(height: 20),
-
-                // Weekly chart
-                _buildWeeklyChart(),
-                const SizedBox(height: 20),
-
-                // Recent trips
-                SectionHeader(
-                  title: 'Recent Trips',
-                  action: 'View All',
-                  onAction: () => context.go(AppRoutes.trips),
-                ),
-                const SizedBox(height: 12),
-                ...trips.take(2).map(
-                      (trip) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TripCard(
-                          trip: trip,
-                          onTap: () => context.push(
-                            '/trips/${trip.id}',
-                            extra: trip,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: AppColors.primary,
+        child: CustomScrollView(
+          slivers: [
+            _buildHeader(),
+            if (_loading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              SliverFillRemaining(child: _ErrorState(message: _error!, onRetry: _load))
+            else if (_deviceToken == null)
+              SliverFillRemaining(child: _NoPairingState(onPair: () => context.push(AppRoutes.devicePairing)))
+            else
+              SliverPadding(
+                padding: const EdgeInsets.all(20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildScoreCard(),
+                    const SizedBox(height: 20),
+                    SectionHeader(
+                      title: 'This Week',
+                      action: 'See All',
+                      onAction: () => context.go(AppRoutes.trips),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickStats(),
+                    const SizedBox(height: 20),
+                    _buildWeeklyChart(),
+                    const SizedBox(height: 20),
+                    SectionHeader(
+                      title: 'Recent Trips',
+                      action: 'View All',
+                      onAction: () => context.go(AppRoutes.trips),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_recentTrips.isEmpty)
+                      const _NoTripsYet()
+                    else
+                      ..._recentTrips.map(
+                        (trip) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: TripCard(
+                            trip: trip,
+                            onTap: () => context.push('/trips/${trip.id}', extra: trip),
                           ),
                         ),
                       ),
-                    ),
-                const SizedBox(height: 20),
-              ]),
-            ),
-          ),
-        ],
+                    const SizedBox(height: 20),
+                  ]),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
+  // ── Header ────────────────────────────────────────────────────────────────
+
   Widget _buildHeader() {
+    final firstName = _user?.fullName.split(' ').first ?? 'Driver';
     return SliverAppBar(
       expandedHeight: 140,
       floating: false,
@@ -103,18 +157,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Good Morning,',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white.withValues(alpha: 0.7)),
+                          'Good ${_greeting()},',
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: Colors.white.withValues(alpha: 0.7)),
                         ),
                         Text(
-                          user.fullName.split(' ').first,
+                          firstName,
                           style: AppTextStyles.h2.copyWith(color: Colors.white),
                         ),
                         const SizedBox(height: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
@@ -125,14 +178,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
+                                decoration: BoxDecoration(
+                                  color: _deviceToken != null
+                                      ? AppColors.accent
+                                      : AppColors.warning,
                                   shape: BoxShape.circle,
                                 ),
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Device Connected',
+                                _deviceToken != null
+                                    ? 'Device Connected'
+                                    : 'No Device Paired',
                                 style: AppTextStyles.labelSmall
                                     .copyWith(color: Colors.white),
                               ),
@@ -142,7 +199,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
-                  // Notification bell
                   Container(
                     width: 40,
                     height: 40,
@@ -150,25 +206,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Icon(Icons.notifications_outlined,
-                            color: Colors.white, size: 20),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.accent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: const Icon(Icons.notifications_outlined,
+                        color: Colors.white, size: 20),
                   ),
                 ],
               ),
@@ -189,14 +228,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: IconButton(
-            icon: const Icon(Icons.bluetooth_rounded,
-                color: Colors.white, size: 22),
+            icon: const Icon(Icons.bluetooth_rounded, color: Colors.white, size: 22),
             onPressed: () => context.push(AppRoutes.devicePairing),
           ),
         ),
       ],
     );
   }
+
+  // ── Score card ────────────────────────────────────────────────────────────
 
   Widget _buildScoreCard() {
     return Container(
@@ -222,9 +262,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      avgScore.toInt().toString(),
-                      style:
-                          AppTextStyles.display1.copyWith(color: Colors.white),
+                      _stats.avgScore.toInt().toString(),
+                      style: AppTextStyles.display1.copyWith(color: Colors.white),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10, left: 4),
@@ -238,41 +277,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '↑ 3 pts from last week',
-                    style: AppTextStyles.labelSmall
-                        .copyWith(color: AppColors.accent),
+                    'Grade ${DriverScoreModel.gradeFromScore(_stats.avgScore)}',
+                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${trips.length} trips recorded',
+                  '${_stats.totalTrips} trips recorded',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: Colors.white.withValues(alpha: 0.6)),
                 ),
               ],
             ),
           ),
-          ScoreGaugeWidget(
-            score: avgScore,
-            size: 130,
-            showLabel: false,
-          ),
+          ScoreGaugeWidget(score: _stats.avgScore, size: 130, showLabel: false),
         ],
       ),
     );
   }
 
-  Widget _buildQuickStats() {
-    final totalKm = trips.fold(0.0, (s, t) => s + t.distanceKm);
-    final totalEvents = trips.fold(0, (s, t) => s + t.events.length);
+  // ── Quick stats grid ──────────────────────────────────────────────────────
 
+  Widget _buildQuickStats() {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -283,30 +315,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         StatCard(
           label: 'Total Distance',
-          value: totalKm.toStringAsFixed(0),
+          value: _stats.totalKm.toStringAsFixed(0),
           unit: 'km',
           icon: Icons.route_rounded,
         ),
         StatCard(
           label: 'Total Trips',
-          value: '${trips.length}',
+          value: '${_stats.totalTrips}',
           icon: Icons.directions_car_rounded,
           iconColor: AppColors.accent,
           iconBg: AppColors.accentLight,
         ),
         StatCard(
-          label: 'Events Detected',
-          value: '$totalEvents',
+          label: 'Harsh Events',
+          value: '${_stats.totalHarshEvents}',
           icon: Icons.warning_amber_rounded,
           iconColor: AppColors.warning,
           iconBg: AppColors.warningLight,
         ),
         StatCard(
           label: 'Best Score',
-          value: trips
-              .map((t) => t.score.overall.toInt())
-              .reduce((a, b) => a > b ? a : b)
-              .toString(),
+          value: _stats.bestScore.toInt().toString(),
           icon: Icons.emoji_events_rounded,
           iconColor: AppColors.success,
           iconBg: AppColors.successLight,
@@ -314,6 +343,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
+
+  // ── Weekly chart ──────────────────────────────────────────────────────────
 
   Widget _buildWeeklyChart() {
     return Container(
@@ -345,32 +376,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         final idx = value.toInt();
-                        if (idx < 0 || idx >= weeklyScores.length) {
+                        if (idx < 0 || idx >= _weeklyScores.length) {
                           return const SizedBox.shrink();
                         }
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
-                            weeklyScores[idx]['day'] as String,
+                            _weeklyScores[idx]['day'] as String,
                             style: AppTextStyles.overline,
                           ),
                         );
                       },
                     ),
                   ),
-                  leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                  leftTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
-                barGroups: weeklyScores.asMap().entries.map((entry) {
+                barGroups: _weeklyScores.asMap().entries.map((entry) {
                   final idx = entry.key;
-                  final score = entry.value['score'] as double;
-                  final isToday = idx == weeklyScores.length - 1;
+                  final score = (entry.value['score'] as num).toDouble();
+                  final isToday = idx == _weeklyScores.length - 1;
                   return BarChartGroupData(
                     x: idx,
                     barRods: [
@@ -382,10 +413,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? AppColors.primaryGradient
                             : LinearGradient(
                                 colors: [
-                                  AppColors.scoreColor(score)
-                                      .withValues(alpha: 0.4),
-                                  AppColors.scoreColor(score)
-                                      .withValues(alpha: 0.7),
+                                  AppColors.scoreColor(score).withValues(alpha: 0.4),
+                                  AppColors.scoreColor(score).withValues(alpha: 0.7),
                                 ],
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
@@ -396,6 +425,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }).toList(),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Morning';
+    if (h < 17) return 'Afternoon';
+    return 'Evening';
+  }
+
+  static List<Map<String, dynamic>> _emptyWeekly() {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.map((d) => {'day': d, 'score': 0.0}).toList();
+  }
+}
+
+// ── Empty / error states ───────────────────────────────────────────────────
+
+class _NoPairingState extends StatelessWidget {
+  final VoidCallback onPair;
+  const _NoPairingState({required this.onPair});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.bluetooth_searching_rounded,
+                  size: 40, color: AppColors.primary),
+            ),
+            const SizedBox(height: 20),
+            const Text('No Device Paired', style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            const Text(
+              'Pair your STM32 device to start recording trips and viewing your driving score.',
+              style: AppTextStyles.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onPair,
+              icon: const Icon(Icons.bluetooth_rounded),
+              label: const Text('Pair Device'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.danger),
+            const SizedBox(height: 16),
+            const Text('Failed to load data', style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            Text(message,
+                style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoTripsYet extends StatelessWidget {
+  const _NoTripsYet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.route_rounded, size: 40, color: AppColors.textSecondary),
+          SizedBox(height: 12),
+          Text('No trips yet', style: AppTextStyles.bodyMedium),
+          SizedBox(height: 4),
+          Text(
+            'Your trips will appear here once the device syncs.',
+            style: AppTextStyles.bodySmall,
+            textAlign: TextAlign.center,
           ),
         ],
       ),

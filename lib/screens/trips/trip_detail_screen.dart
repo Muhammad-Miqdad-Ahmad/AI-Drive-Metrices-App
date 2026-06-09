@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/services/supabase_service.dart';
+import '../../core/storage/local_storage_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/models.dart';
 import '../../widgets/common/score_gauge_widget.dart';
 import '../../widgets/common/stat_card_widget.dart';
 
-class TripDetailScreen extends StatelessWidget {
+class TripDetailScreen extends StatefulWidget {
   final String tripId;
-  final TripModel? trip;
+  final TripModel? trip; // passed via router extra (summary only)
 
   const TripDetailScreen({
     super.key,
@@ -18,22 +19,68 @@ class TripDetailScreen extends StatelessWidget {
     this.trip,
   });
 
-  TripModel get _trip {
-    if (trip != null) return trip!;
-    final all = MockDataService.trips;
-    final found = all.where((t) => t.id == tripId);
-    return found.isNotEmpty ? found.first : all.first;
+  @override
+  State<TripDetailScreen> createState() => _TripDetailScreenState();
+}
+
+class _TripDetailScreenState extends State<TripDetailScreen> {
+  // If the router passed a summary TripModel we show that instantly,
+  // then replace it with the full detail (events + route) from Supabase.
+  TripModel? _trip;
+  bool _loadingDetail = false;
+  String? _detailError;
+
+  @override
+  void initState() {
+    super.initState();
+    _trip = widget.trip;
+    _fetchDetail();
+  }
+
+  Future<void> _fetchDetail() async {
+    setState(() { _loadingDetail = true; _detailError = null; });
+    try {
+      final token = await LocalStorageService.getDeviceToken();
+      if (token == null) return;
+
+      final svc = SupabaseService(deviceToken: token);
+      final full = await svc.getTripDetail(widget.tripId);
+      if (mounted && full != null) {
+        setState(() { _trip = full; });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _detailError = e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingDetail = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = _trip;
+    if (_trip == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(backgroundColor: AppColors.surface),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final t = _trip!;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(DateFormatter.tripDate(t.startTime)),
         backgroundColor: AppColors.surface,
         actions: [
+          if (_loadingDetail)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () {},
@@ -45,6 +92,33 @@ class TripDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_detailError != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 16, color: AppColors.danger),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Could not load full detail. Showing summary.',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.danger),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _fetchDetail,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
             _ScoreCard(trip: t),
             const SizedBox(height: 20),
             const Text('Trip Stats', style: AppTextStyles.h3),
@@ -92,6 +166,9 @@ class TripDetailScreen extends StatelessWidget {
             if (t.events.isNotEmpty) ...[
               _EventsSection(events: t.events),
               const SizedBox(height: 20),
+            ] else if (_loadingDetail) ...[
+              _EventsLoadingPlaceholder(),
+              const SizedBox(height: 20),
             ],
             _MapSection(trip: t),
             const SizedBox(height: 32),
@@ -101,6 +178,8 @@ class TripDetailScreen extends StatelessWidget {
     );
   }
 }
+
+// ── Score card ─────────────────────────────────────────────────────────────
 
 class _ScoreCard extends StatelessWidget {
   final TripModel trip;
@@ -128,8 +207,7 @@ class _ScoreCard extends StatelessWidget {
                 const Text('Overall Score', style: AppTextStyles.labelMedium),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.scoreColorLight(trip.score.overall),
                     borderRadius: BorderRadius.circular(8),
@@ -142,7 +220,8 @@ class _ScoreCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 _ScoreRow(label: 'Braking', value: trip.score.braking),
                 _ScoreRow(label: 'Cornering', value: trip.score.cornering),
-                _ScoreRow(label: 'Speeding', value: trip.score.speeding),
+                _ScoreRow(label: 'Acceleration', value: trip.score.acceleration),
+                _ScoreRow(label: 'Smoothness', value: trip.score.smoothness),
               ],
             ),
           ),
@@ -175,6 +254,8 @@ class _ScoreRow extends StatelessWidget {
     );
   }
 }
+
+// ── Score breakdown radar chart ────────────────────────────────────────────
 
 class _ScoreBreakdown extends StatelessWidget {
   final DriverScoreModel score;
@@ -211,13 +292,13 @@ class _ScoreBreakdown extends StatelessWidget {
                     dataEntries: [
                       RadarEntry(value: score.braking),
                       RadarEntry(value: score.cornering),
-                      RadarEntry(value: score.speeding),
+                      RadarEntry(value: score.acceleration),
                       RadarEntry(value: score.smoothness),
                     ],
                   ),
                 ],
                 getTitle: (index, angle) {
-                  const titles = ['Braking', 'Cornering', 'Speeding', 'Smooth'];
+                  const titles = ['Braking', 'Cornering', 'Acceleration', 'Smooth'];
                   return RadarChartTitle(
                     text: titles[index],
                     angle: angle,
@@ -226,12 +307,9 @@ class _ScoreBreakdown extends StatelessWidget {
                 },
                 radarBackgroundColor: Colors.transparent,
                 borderData: FlBorderData(show: false),
-                gridBorderData:
-                    const BorderSide(color: AppColors.border, width: 1),
-                radarBorderData:
-                    const BorderSide(color: AppColors.border, width: 1),
-                tickBorderData:
-                    const BorderSide(color: AppColors.border, width: 1),
+                gridBorderData: const BorderSide(color: AppColors.border, width: 1),
+                radarBorderData: const BorderSide(color: AppColors.border, width: 1),
+                tickBorderData: const BorderSide(color: AppColors.border, width: 1),
               ),
             ),
           ),
@@ -241,37 +319,39 @@ class _ScoreBreakdown extends StatelessWidget {
   }
 }
 
+// ── Events section ─────────────────────────────────────────────────────────
+
 class _EventsSection extends StatelessWidget {
   final List<TripEvent> events;
   const _EventsSection({required this.events});
 
-  IconData _iconForType(TripEventType type) {
+  IconData _iconFor(TripEventType type) {
     switch (type) {
-      case TripEventType.harshBraking:
-        return Icons.car_crash_rounded;
-      case TripEventType.sharpTurn:
-        return Icons.turn_right_rounded;
-      case TripEventType.speeding:
-        return Icons.speed_rounded;
-      case TripEventType.collision:
-        return Icons.warning_rounded;
-      case TripEventType.hardAccel:
-        return Icons.trending_up_rounded;
+      case TripEventType.harshBraking:  return Icons.car_crash_rounded;
+      case TripEventType.rightTurn:     return Icons.turn_right_rounded;
+      case TripEventType.leftTurn:      return Icons.turn_left_rounded;
+      case TripEventType.hardAccel:     return Icons.trending_up_rounded;
+      case TripEventType.normalDriving: return Icons.check_circle_outline;
+      case TripEventType.idle:          return Icons.pause_circle_outline;
     }
   }
 
-  Color _colorForType(TripEventType type) {
+  Color _colorFor(TripEventType type) {
     switch (type) {
-      case TripEventType.sharpTurn:
-      case TripEventType.hardAccel:
-        return AppColors.warning;
-      default:
-        return AppColors.danger;
+      case TripEventType.harshBraking: return AppColors.danger;
+      case TripEventType.leftTurn:
+      case TripEventType.rightTurn:    return AppColors.warning;
+      case TripEventType.hardAccel:    return AppColors.warning;
+      default:                         return AppColors.success;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show only harsh events in the list (normal/idle are not useful to display)
+    final harshEvents = events.where((e) => e.type.isHarsh).toList();
+    if (harshEvents.isEmpty) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -285,7 +365,7 @@ class _EventsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('Events', style: AppTextStyles.h3),
+              const Text('Harsh Events', style: AppTextStyles.h3),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -294,18 +374,17 @@ class _EventsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '${events.length}',
-                  style: AppTextStyles.labelSmall
-                      .copyWith(color: AppColors.danger),
+                  '${harshEvents.length}',
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.danger),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...events.asMap().entries.map((entry) {
+          ...harshEvents.asMap().entries.map((entry) {
             final i = entry.key;
             final event = entry.value;
-            final color = _colorForType(event.type);
+            final color = _colorFor(event.type);
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -318,12 +397,10 @@ class _EventsSection extends StatelessWidget {
                         color: color.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(_iconForType(event.type),
-                          size: 16, color: color),
+                      child: Icon(_iconFor(event.type), size: 16, color: color),
                     ),
-                    if (i < events.length - 1)
-                      Container(
-                          width: 1.5, height: 28, color: AppColors.border),
+                    if (i < harshEvents.length - 1)
+                      Container(width: 1.5, height: 28, color: AppColors.border),
                   ],
                 ),
                 const SizedBox(width: 12),
@@ -335,16 +412,23 @@ class _EventsSection extends StatelessWidget {
                       children: [
                         Text(event.label, style: AppTextStyles.labelLarge),
                         const SizedBox(height: 2),
-                        Text(DateFormatter.time(event.timestamp),
-                            style: AppTextStyles.bodySmall),
-                        if (event.value != null) ...[
+                        Text(
+                          DateFormatter.time(event.timestamp),
+                          style: AppTextStyles.bodySmall,
+                        ),
+                        if (event.confidence > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            event.type == TripEventType.speeding
-                                ? '${event.value!.toInt()} km/h'
-                                : '${event.value!.toStringAsFixed(2)}g force',
-                            style:
-                                AppTextStyles.monoSmall.copyWith(color: color),
+                            'Confidence: ${(event.confidence * 100).toInt()}%',
+                            style: AppTextStyles.monoSmall.copyWith(color: color),
+                          ),
+                        ],
+                        if (event.speedKmh != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '${event.speedKmh!.toInt()} km/h',
+                            style: AppTextStyles.monoSmall
+                                .copyWith(color: AppColors.textSecondary),
                           ),
                         ],
                       ],
@@ -359,6 +443,33 @@ class _EventsSection extends StatelessWidget {
     );
   }
 }
+
+class _EventsLoadingPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 12),
+          Text('Loading events...', style: AppTextStyles.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Map section ────────────────────────────────────────────────────────────
 
 class _MapSection extends StatelessWidget {
   final TripModel trip;
@@ -377,7 +488,16 @@ class _MapSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Route', style: AppTextStyles.h3),
+          Row(
+            children: [
+              const Text('Route', style: AppTextStyles.h3),
+              const SizedBox(width: 8),
+              Text(
+                '${trip.route.length} GPS points',
+                style: AppTextStyles.caption,
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Container(
             height: 180,
@@ -385,47 +505,46 @@ class _MapSection extends StatelessWidget {
               color: AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(
+            child: const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.map_outlined,
-                      size: 40, color: AppColors.textTertiary),
-                  const SizedBox(height: 8),
-                  const Text('Google Maps integration',
+                  Icon(Icons.map_outlined, size: 40, color: AppColors.textTertiary),
+                  SizedBox(height: 8),
+                  Text('Map view (Google Maps integration)',
                       style: AppTextStyles.bodySmall),
-                  Text('${trip.route.length} GPS points recorded',
-                      style: AppTextStyles.caption),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 14, color: AppColors.textTertiary),
-              const SizedBox(width: 4),
-              Text(
-                'Start: ${trip.route.first.latitude.toStringAsFixed(4)}, '
-                '${trip.route.first.longitude.toStringAsFixed(4)}',
-                style: AppTextStyles.monoSmall,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.flag_outlined,
-                  size: 14, color: AppColors.textTertiary),
-              const SizedBox(width: 4),
-              Text(
-                'End: ${trip.route.last.latitude.toStringAsFixed(4)}, '
-                '${trip.route.last.longitude.toStringAsFixed(4)}',
-                style: AppTextStyles.monoSmall,
-              ),
-            ],
-          ),
+          if (trip.route.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    size: 14, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  'Start: ${trip.route.first.latitude.toStringAsFixed(4)}, '
+                  '${trip.route.first.longitude.toStringAsFixed(4)}',
+                  style: AppTextStyles.monoSmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.flag_outlined,
+                    size: 14, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  'End: ${trip.route.last.latitude.toStringAsFixed(4)}, '
+                  '${trip.route.last.longitude.toStringAsFixed(4)}',
+                  style: AppTextStyles.monoSmall,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

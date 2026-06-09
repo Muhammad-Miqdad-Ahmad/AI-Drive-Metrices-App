@@ -10,31 +10,24 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   int _locationToIndex(String location) {
-    if (location.startsWith('/trips')) return 1;
+    if (location.startsWith('/trips'))   return 1;
     if (location.startsWith('/reports')) return 2;
-    if (location.startsWith('/health')) return 3;
-    if (location.startsWith('/profile')) return 4;
+    if (location.startsWith('/profile')) return 3;
     return 0; // dashboard
   }
 
   void _onTap(BuildContext context, int index) {
     switch (index) {
-      case 0:
-        context.go(AppRoutes.dashboard);
-      case 1:
-        context.go(AppRoutes.trips);
-      case 2:
-        context.go(AppRoutes.reports);
-      case 3:
-        context.go(AppRoutes.vehicleHealth);
-      case 4:
-        context.go(AppRoutes.profile);
+      case 0: context.go(AppRoutes.dashboard);
+      case 1: context.go(AppRoutes.trips);
+      case 2: context.go(AppRoutes.reports);
+      case 3: context.go(AppRoutes.profile);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    final location     = GoRouterState.of(context).uri.toString();
     final currentIndex = _locationToIndex(location);
 
     return Scaffold(
@@ -94,16 +87,10 @@ class _BottomNav extends StatelessWidget {
                 onTap: () => onTap(2),
               ),
               _NavItem(
-                icon: Icons.monitor_heart_rounded,
-                label: 'Health',
-                isSelected: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-              _NavItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
-                isSelected: currentIndex == 4,
-                onTap: () => onTap(4),
+                isSelected: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),
