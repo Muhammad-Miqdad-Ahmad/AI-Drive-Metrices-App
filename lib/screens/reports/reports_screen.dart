@@ -1462,9 +1462,15 @@ class _ReportCardState extends State<_ReportCard> {
                 if (trip.hardAccelCount > 0)
                   _buildHeaderChip('${trip.hardAccelCount} Hard Accels',
                       icon: Icons.bolt_rounded, isInfo: true),
-                if (totalHarshEvents == 0)
+                if (totalHarshEvents > 0)
+                  _buildHeaderChip('$totalHarshEvents Harsh Events Total',
+                      icon: Icons.warning_amber_rounded, isDanger: true),
+                if (totalHarshEvents == 0 && trip.score.overall >= 85)
                   _buildHeaderChip('Perfect Smooth Drive',
-                      icon: Icons.verified_user_rounded, isSuccess: true),
+                      icon: Icons.verified_user_rounded, isSuccess: true)
+                else if (totalHarshEvents == 0 && trip.score.overall < 85)
+                  _buildHeaderChip('Harsh Events Detected',
+                      icon: Icons.check_circle_outline_rounded, isInfo: true),
               ],
             ),
           ),
