@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 
@@ -43,7 +44,6 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
       _devices.clear();
     });
 
-    // Simulate BLE scan with mock devices
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) {
       setState(() {
@@ -73,8 +73,8 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
           content: Text('Connected to ${device.name}'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r)),
         ),
       );
     }
@@ -97,7 +97,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
         backgroundColor: AppColors.surface,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -107,7 +107,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
               connected: _connected,
               pulseAnim: _pulseAnim,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Status card
             if (_connected)
@@ -120,24 +120,24 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
               ElevatedButton.icon(
                 onPressed: _scanning ? null : _startScan,
                 icon: _scanning
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
+                    ? SizedBox(
+                        width: 16.r,
+                        height: 16.r,
+                        child: const CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.bluetooth_searching_rounded, size: 18),
+                    : Icon(Icons.bluetooth_searching_rounded, size: 18.r),
                 label: Text(_scanning ? 'Scanning...' : 'Scan for Devices'),
               ),
             ],
 
             // Device list
             if (_devices.isNotEmpty && !_connected) ...[
-              const SizedBox(height: 24),
-              const Text('Nearby Devices', style: AppTextStyles.h3),
-              const SizedBox(height: 12),
+              SizedBox(height: 24.h),
+              Text('Nearby Devices', style: AppTextStyles.h3),
+              SizedBox(height: 12.h),
               ..._devices.map(
                 (device) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: EdgeInsets.only(bottom: 10.h),
                   child: _DeviceTile(
                     device: device,
                     onConnect: () => _connect(device),
@@ -146,14 +146,14 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
               ),
             ],
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Info box
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.r),
               decoration: BoxDecoration(
                 color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(14.r),
                 border:
                     Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
               ),
@@ -162,9 +162,9 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.bluetooth_rounded,
-                          size: 16, color: AppColors.primary),
-                      const SizedBox(width: 8),
+                      Icon(Icons.bluetooth_rounded,
+                          size: 16.r, color: AppColors.primary),
+                      SizedBox(width: 8.w),
                       Text(
                         'How to pair',
                         style: AppTextStyles.labelLarge
@@ -172,7 +172,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10.h),
                   const _HelpStep(
                       number: '1',
                       text:
@@ -221,8 +221,8 @@ class _BLEVisual extends StatelessWidget {
               Transform.scale(
                 scale: scanning ? pulseAnim.value * 1.4 : 1.4,
                 child: Container(
-                  width: 120,
-                  height: 120,
+                  width: 120.r,
+                  height: 120.r,
                   decoration: BoxDecoration(
                     color: (connected ? AppColors.accent : AppColors.primary)
                         .withValues(alpha: 0.08),
@@ -231,8 +231,8 @@ class _BLEVisual extends StatelessWidget {
                 ),
               ),
             Container(
-              width: 90,
-              height: 90,
+              width: 90.r,
+              height: 90.r,
               decoration: BoxDecoration(
                 gradient: connected
                     ? AppColors.safeGradient
@@ -253,7 +253,7 @@ class _BLEVisual extends StatelessWidget {
                     ? Icons.bluetooth_connected_rounded
                     : Icons.bluetooth_rounded,
                 color: Colors.white,
-                size: 38,
+                size: 38.r,
               ),
             ),
           ],
@@ -272,17 +272,17 @@ class _ConnectedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: AppColors.successLight,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_rounded,
-              color: AppColors.success, size: 24),
-          const SizedBox(width: 12),
+          Icon(Icons.check_circle_rounded,
+              color: AppColors.success, size: 24.r),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,26 +321,26 @@ class _DeviceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 40.r,
+            height: 40.r,
             decoration: BoxDecoration(
               color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            child: const Icon(Icons.memory_rounded,
-                size: 20, color: AppColors.primary),
+            child: Icon(Icons.memory_rounded,
+                size: 20.r, color: AppColors.primary),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,27 +357,27 @@ class _DeviceTile extends StatelessWidget {
                 children: List.generate(
                   3,
                   (i) => Container(
-                    width: 4,
-                    height: 8.0 + (i * 4),
-                    margin: const EdgeInsets.only(left: 2),
+                    width: 4.w,
+                    height: (8.0 + (i * 4)).h,
+                    margin: EdgeInsets.only(left: 2.w),
                     decoration: BoxDecoration(
                       color: i < _signalBars
                           ? AppColors.primary
                           : AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(2.r),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6.h),
               GestureDetector(
                 onTap: onConnect,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                     boxShadow: AppColors.primaryShadow,
                   ),
                   child: Text('Pair',
@@ -401,13 +401,13 @@ class _HelpStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: 20.r,
+            height: 20.r,
             decoration: const BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
@@ -417,7 +417,7 @@ class _HelpStep extends StatelessWidget {
                   style: AppTextStyles.overline.copyWith(color: Colors.white)),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.w),
           Expanded(child: Text(text, style: AppTextStyles.bodySmall)),
         ],
       ),

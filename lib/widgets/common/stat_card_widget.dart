@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/models.dart';
@@ -28,10 +29,10 @@ class StatCard extends StatelessWidget {
     final iBg = iconBg ?? AppColors.primarySurface;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
@@ -40,29 +41,29 @@ class StatCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 36.r,
+            height: 36.r,
             decoration: BoxDecoration(
               color: iBg,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            child: Icon(icon, size: 18, color: iColor),
+            child: Icon(icon, size: 18.r, color: iColor),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(value, style: AppTextStyles.h2),
               if (unit != null) ...[
-                const SizedBox(width: 2),
+                SizedBox(width: 2.w),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
+                  padding: EdgeInsets.only(bottom: 3.h),
                   child: Text(unit!, style: AppTextStyles.bodySmall),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2.h),
           Text(label, style: AppTextStyles.bodySmall),
         ],
       ),
@@ -122,18 +123,18 @@ class EventBadge extends StatelessWidget {
     final s = _style;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 10,
-        vertical: compact ? 4 : 6,
+        horizontal: compact ? 8.r : 10.r,
+        vertical: compact ? 4.r : 6.r,
       ),
       decoration: BoxDecoration(
         color: s.bg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(s.icon, size: compact ? 12 : 14, color: s.color),
-          const SizedBox(width: 4),
+          Icon(s.icon, size: compact ? 12.r : 14.r, color: s.color),
+          SizedBox(width: 4.w),
           Text(
             s.label,
             style: (compact
@@ -184,7 +185,7 @@ class SectionHeader extends StatelessWidget {
           TextButton(
             onPressed: onAction,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -244,8 +245,8 @@ class _HealthBarState extends State<HealthBar>
         children: [
           Row(
             children: [
-              Icon(widget.icon, size: 16, color: AppColors.textSecondary),
-              const SizedBox(width: 8),
+              Icon(widget.icon, size: 16.r, color: AppColors.textSecondary),
+              SizedBox(width: 8.w),
               Expanded(child: Text(widget.label, style: AppTextStyles.labelLarge)),
               Text(
                 '${widget.value.toInt()}%',
@@ -253,12 +254,12 @@ class _HealthBarState extends State<HealthBar>
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(4.r),
             child: LinearProgressIndicator(
               value: _anim.value,
-              minHeight: 8,
+              minHeight: 8.h,
               backgroundColor: AppColors.surfaceVariant,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -32,12 +33,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         slivers: [
           _buildHeader(),
           SliverPadding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20.r),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // Score section
                 _buildScoreCard(),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // Quick stats
                 SectionHeader(
@@ -45,13 +46,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   action: 'See All',
                   onAction: () => context.go(AppRoutes.trips),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 _buildQuickStats(),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // Weekly chart
                 _buildWeeklyChart(),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // Recent trips
                 SectionHeader(
@@ -59,10 +60,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   action: 'View All',
                   onAction: () => context.go(AppRoutes.trips),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 ...trips.take(2).map(
                       (trip) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: EdgeInsets.only(bottom: 12.h),
                         child: TripCard(
                           trip: trip,
                           onTap: () => context.push(
@@ -72,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
               ]),
             ),
           ),
@@ -83,7 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildHeader() {
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 140.h,
       floating: false,
       pinned: true,
       backgroundColor: AppColors.primary,
@@ -94,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -111,26 +112,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           user.fullName.split(' ').first,
                           style: AppTextStyles.h2.copyWith(color: Colors.white),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 4.h),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(20.r),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 6,
-                                height: 6,
+                                width: 6.r,
+                                height: 6.r,
                                 decoration: const BoxDecoration(
                                   color: AppColors.accent,
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6.w),
                               Text(
                                 'Device Connected',
                                 style: AppTextStyles.labelSmall
@@ -144,23 +145,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   // Notification bell
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 40.r,
+                    height: 40.r,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        const Icon(Icons.notifications_outlined,
-                            color: Colors.white, size: 20),
+                        Icon(Icons.notifications_outlined,
+                            color: Colors.white, size: 20.r),
                         Positioned(
                           top: 8,
                           right: 8,
                           child: Container(
-                            width: 8,
-                            height: 8,
+                            width: 8.r,
+                            height: 8.r,
                             decoration: const BoxDecoration(
                               color: AppColors.accent,
                               shape: BoxShape.circle,
@@ -176,21 +177,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         title: Padding(
-          padding: const EdgeInsets.only(left: 4),
+          padding: EdgeInsets.only(left: 4.w),
           child: Text(
             'Drive Metrics AI',
             style: AppTextStyles.h4.copyWith(color: Colors.white),
           ),
         ),
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        titlePadding: EdgeInsets.only(left: 20.w, bottom: 16.h),
         collapseMode: CollapseMode.parallax,
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 12),
+          padding: EdgeInsets.only(right: 12.w),
           child: IconButton(
-            icon: const Icon(Icons.bluetooth_rounded,
-                color: Colors.white, size: 22),
+            icon: Icon(Icons.bluetooth_rounded,
+                color: Colors.white, size: 22.r),
             onPressed: () => context.push(AppRoutes.devicePairing),
           ),
         ),
@@ -200,10 +201,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildScoreCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: AppColors.primaryShadow,
       ),
       child: Row(
@@ -217,7 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: AppTextStyles.labelMedium
                       .copyWith(color: Colors.white.withValues(alpha: 0.8)),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6.h),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -227,7 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           AppTextStyles.display1.copyWith(color: Colors.white),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10, left: 4),
+                      padding: EdgeInsets.only(bottom: 10.h, left: 4.w),
                       child: Text(
                         '/ 100',
                         style: AppTextStyles.bodyMedium.copyWith(
@@ -236,13 +237,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6.h),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
                     '↑ 3 pts from last week',
@@ -250,7 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .copyWith(color: AppColors.accent),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   '${trips.length} trips recorded',
                   style: AppTextStyles.bodySmall
@@ -277,8 +278,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+      crossAxisSpacing: 12.w,
+      mainAxisSpacing: 12.h,
       childAspectRatio: 1.35,
       children: [
         StatCard(
@@ -317,22 +318,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildWeeklyChart() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Weekly Score Trend', style: AppTextStyles.h3),
-          const SizedBox(height: 4),
-          const Text('Last 7 days', style: AppTextStyles.bodySmall),
-          const SizedBox(height: 20),
+          Text('Weekly Score Trend', style: AppTextStyles.h3),
+          SizedBox(height: 4.h),
+          Text('Last 7 days', style: AppTextStyles.bodySmall),
+          SizedBox(height: 20.h),
           SizedBox(
-            height: 140,
+            height: 140.h,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
@@ -349,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           return const SizedBox.shrink();
                         }
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: EdgeInsets.only(top: 6.h),
                           child: Text(
                             weeklyScores[idx]['day'] as String,
                             style: AppTextStyles.overline,
@@ -376,8 +377,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: score,
-                        width: 28,
-                        borderRadius: BorderRadius.circular(6),
+                        width: 28.w,
+                        borderRadius: BorderRadius.circular(6.r),
                         gradient: isToday
                             ? AppColors.primaryGradient
                             : LinearGradient(

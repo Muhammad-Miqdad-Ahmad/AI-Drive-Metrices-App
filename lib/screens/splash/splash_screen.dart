@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -74,25 +75,25 @@ class _SplashScreenState extends State<SplashScreen>
                     child: ScaleTransition(
                       scale: _scaleAnim,
                       child: Container(
-                        width: 100,
-                        height: 100,
+                        width: 100.r,
+                        height: 100.r,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(28.r),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.directions_car_rounded,
-                          size: 52,
+                          size: 52.r,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32.h),
                   // App name
                   SlideTransition(
                     position: _slideAnim,
@@ -104,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
                             'Drive Metrics',
                             style: AppTextStyles.h1.copyWith(
                               color: Colors.white,
-                              fontSize: 34,
+                              fontSize: 34.sp,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -1,
                             ),
@@ -113,12 +114,12 @@ class _SplashScreenState extends State<SplashScreen>
                             'AI',
                             style: AppTextStyles.h1.copyWith(
                               color: Colors.white.withValues(alpha: 0.6),
-                              fontSize: 34,
+                              fontSize: 34.sp,
                               fontWeight: FontWeight.w400,
                               letterSpacing: -1,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8.h),
                           Text(
                             'Drive Smart. Stay Safe.',
                             style: AppTextStyles.bodyMedium.copyWith(

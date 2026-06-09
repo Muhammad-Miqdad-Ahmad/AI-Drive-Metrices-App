@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -40,7 +41,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         title: const Text('Trip History'),
         backgroundColor: AppColors.surface,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
+          preferredSize: Size.fromHeight(52.h),
           child: _FilterChips(
             selected: _filter,
             onSelected: (v) => setState(() => _filter = v),
@@ -50,9 +51,9 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
       body: filteredTrips.isEmpty
           ? _EmptyState()
           : ListView.separated(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20.r),
               itemCount: filteredTrips.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {
                 final trip = filteredTrips[index];
                 return TripCard(
@@ -75,13 +76,13 @@ class _FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
+      height: 52.h,
       color: AppColors.surface,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => SizedBox(width: 8.w),
         itemBuilder: (context, i) {
           final f = _filters[i];
           final isSelected = f == selected;
@@ -90,10 +91,10 @@ class _FilterChips extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 f,
@@ -117,19 +118,19 @@ class _EmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 80.r,
+            height: 80.r,
             decoration: BoxDecoration(
               color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(24.r),
             ),
-            child: const Icon(Icons.route_rounded,
-                size: 40, color: AppColors.primary),
+            child: Icon(Icons.route_rounded,
+                size: 40.r, color: AppColors.primary),
           ),
-          const SizedBox(height: 20),
-          const Text('No trips found', style: AppTextStyles.h3),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 20.h),
+          Text('No trips found', style: AppTextStyles.h3),
+          SizedBox(height: 8.h),
+          Text(
             'Connect your device and start driving',
             style: AppTextStyles.bodyMedium,
             textAlign: TextAlign.center,

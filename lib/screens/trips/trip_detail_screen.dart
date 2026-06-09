@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/mock_data_service.dart';
@@ -41,20 +42,20 @@ class TripDetailScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _ScoreCard(trip: t),
-            const SizedBox(height: 20),
-            const Text('Trip Stats', style: AppTextStyles.h3),
-            const SizedBox(height: 12),
+            SizedBox(height: 20.h),
+            Text('Trip Stats', style: AppTextStyles.h3),
+            SizedBox(height: 12.h),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.h,
               childAspectRatio: 1.4,
               children: [
                 StatCard(
@@ -86,15 +87,15 @@ class TripDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             _ScoreBreakdown(score: t.score),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             if (t.events.isNotEmpty) ...[
               _EventsSection(events: t.events),
-              const SizedBox(height: 20),
+              SizedBox(height: 20.h),
             ],
             _MapSection(trip: t),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
           ],
         ),
       ),
@@ -110,36 +111,36 @@ class _ScoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = AppColors.scoreColor(trip.score.overall);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Row(
         children: [
           ScoreGaugeWidget(score: trip.score.overall, size: 120),
-          const SizedBox(width: 20),
+          SizedBox(width: 20.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Overall Score', style: AppTextStyles.labelMedium),
-                const SizedBox(height: 4),
+                Text('Overall Score', style: AppTextStyles.labelMedium),
+                SizedBox(height: 4.h),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: AppColors.scoreColorLight(trip.score.overall),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     'Grade ${trip.score.grade}',
                     style: AppTextStyles.labelLarge.copyWith(color: color),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 _ScoreRow(label: 'Braking', value: trip.score.braking),
                 _ScoreRow(label: 'Cornering', value: trip.score.cornering),
                 _ScoreRow(label: 'Speeding', value: trip.score.speeding),
@@ -160,7 +161,7 @@ class _ScoreRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: 4.h),
       child: Row(
         children: [
           Expanded(child: Text(label, style: AppTextStyles.bodySmall)),
@@ -183,20 +184,20 @@ class _ScoreBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Score Breakdown', style: AppTextStyles.h3),
-          const SizedBox(height: 16),
+          Text('Score Breakdown', style: AppTextStyles.h3),
+          SizedBox(height: 16.h),
           SizedBox(
-            height: 180,
+            height: 180.h,
             child: RadarChart(
               RadarChartData(
                 radarShape: RadarShape.polygon,
@@ -273,10 +274,10 @@ class _EventsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
@@ -285,13 +286,13 @@ class _EventsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('Events', style: AppTextStyles.h3),
-              const SizedBox(width: 8),
+              Text('Events', style: AppTextStyles.h3),
+              SizedBox(width: 8.w),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                 decoration: BoxDecoration(
                   color: AppColors.dangerLight,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
                   '${events.length}',
@@ -301,7 +302,7 @@ class _EventsSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           ...events.asMap().entries.map((entry) {
             final i = entry.key;
             final event = entry.value;
@@ -312,33 +313,33 @@ class _EventsSection extends StatelessWidget {
                 Column(
                   children: [
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 32.r,
+                      height: 32.r,
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(_iconForType(event.type),
-                          size: 16, color: color),
+                          size: 16.r, color: color),
                     ),
                     if (i < events.length - 1)
                       Container(
-                          width: 1.5, height: 28, color: AppColors.border),
+                          width: 1.5, height: 28.h, color: AppColors.border),
                   ],
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: EdgeInsets.only(bottom: 20.h),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(event.label, style: AppTextStyles.labelLarge),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2.h),
                         Text(DateFormatter.time(event.timestamp),
                             style: AppTextStyles.bodySmall),
                         if (event.value != null) ...[
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.h),
                           Text(
                             event.type == TripEventType.speeding
                                 ? '${event.value!.toInt()} km/h'
@@ -367,32 +368,32 @@ class _MapSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Route', style: AppTextStyles.h3),
-          const SizedBox(height: 12),
+          Text('Route', style: AppTextStyles.h3),
+          SizedBox(height: 12.h),
           Container(
-            height: 180,
+            height: 180.h,
             decoration: BoxDecoration(
               color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.map_outlined,
-                      size: 40, color: AppColors.textTertiary),
-                  const SizedBox(height: 8),
-                  const Text('Google Maps integration',
+                  Icon(Icons.map_outlined,
+                      size: 40.r, color: AppColors.textTertiary),
+                  SizedBox(height: 8.h),
+                  Text('Google Maps integration',
                       style: AppTextStyles.bodySmall),
                   Text('${trip.route.length} GPS points recorded',
                       style: AppTextStyles.caption),
@@ -400,12 +401,12 @@ class _MapSection extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 14, color: AppColors.textTertiary),
-              const SizedBox(width: 4),
+              Icon(Icons.location_on_outlined,
+                  size: 14.r, color: AppColors.textTertiary),
+              SizedBox(width: 4.w),
               Text(
                 'Start: ${trip.route.first.latitude.toStringAsFixed(4)}, '
                 '${trip.route.first.longitude.toStringAsFixed(4)}',
@@ -413,12 +414,12 @@ class _MapSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Row(
             children: [
-              const Icon(Icons.flag_outlined,
-                  size: 14, color: AppColors.textTertiary),
-              const SizedBox(width: 4),
+              Icon(Icons.flag_outlined,
+                  size: 14.r, color: AppColors.textTertiary),
+              SizedBox(width: 4.w),
               Text(
                 'End: ${trip.route.last.latitude.toStringAsFixed(4)}, '
                 '${trip.route.last.longitude.toStringAsFixed(4)}',

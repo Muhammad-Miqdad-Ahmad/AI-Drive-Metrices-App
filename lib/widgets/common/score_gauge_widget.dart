@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 
@@ -54,6 +55,7 @@ class _ScoreGaugeWidgetState extends State<ScoreGaugeWidget>
 
   @override
   Widget build(BuildContext context) {
+    final responsiveSize = widget.size.r;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, _) {
@@ -61,13 +63,13 @@ class _ScoreGaugeWidgetState extends State<ScoreGaugeWidget>
         final color = AppColors.scoreColor(currentScore);
 
         return SizedBox(
-          width: widget.size,
-          height: widget.size,
+          width: responsiveSize,
+          height: responsiveSize,
           child: Stack(
             alignment: Alignment.center,
             children: [
               CustomPaint(
-                size: Size(widget.size, widget.size),
+                size: Size(responsiveSize, responsiveSize),
                 painter: _GaugePainter(
                   score: currentScore,
                   color: color,
@@ -81,7 +83,7 @@ class _ScoreGaugeWidgetState extends State<ScoreGaugeWidget>
                     currentScore.toInt().toString(),
                     style: AppTextStyles.display2.copyWith(
                       color: color,
-                      fontSize: widget.size * 0.28,
+                      fontSize: responsiveSize * 0.28,
                     ),
                   ),
                   if (widget.showLabel)
@@ -172,12 +174,13 @@ class ScoreBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = AppColors.scoreColor(score);
     final bgColor = AppColors.scoreColorLight(score);
+    final responsiveSize = size.r;
     return Container(
-      width: size,
-      height: size,
+      width: responsiveSize,
+      height: responsiveSize,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(size * 0.3),
+        borderRadius: BorderRadius.circular(responsiveSize * 0.3),
       ),
       child: Center(
         child: Text(

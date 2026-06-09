@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -22,7 +23,7 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: AppColors.surface,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20),
+            icon: Icon(Icons.edit_outlined, size: 20.r),
             onPressed: () {},
           ),
         ],
@@ -36,11 +37,11 @@ class ProfileScreen extends StatelessWidget {
             // Stats row
             _StatsRow(trips: trips),
 
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // Settings sections
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -49,7 +50,7 @@ class ProfileScreen extends StatelessWidget {
                         letterSpacing: 1.0,
                         color: AppColors.textTertiary,
                       )),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   _SettingsCard(
                     items: [
                       _SettingsItem(
@@ -70,14 +71,14 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
 
                   Text('Device',
                       style: AppTextStyles.labelMedium.copyWith(
                         letterSpacing: 1.0,
                         color: AppColors.textTertiary,
                       )),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   _SettingsCard(
                     items: [
                       _SettingsItem(
@@ -86,11 +87,11 @@ class ProfileScreen extends StatelessWidget {
                         subtitle: 'DriveMetrics-A1B2',
                         onTap: () => context.push(AppRoutes.devicePairing),
                         trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 8.w, vertical: 3.h),
                           decoration: BoxDecoration(
                             color: AppColors.successLight,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(6.r),
                           ),
                           child: Text('Connected',
                               style: AppTextStyles.labelSmall
@@ -104,14 +105,14 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
 
                   Text('Preferences',
                       style: AppTextStyles.labelMedium.copyWith(
                         letterSpacing: 1.0,
                         color: AppColors.textTertiary,
                       )),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   _SettingsCard(
                     items: [
                       _SettingsItem(
@@ -128,14 +129,14 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
 
                   Text('Support',
                       style: AppTextStyles.labelMedium.copyWith(
                         letterSpacing: 1.0,
                         color: AppColors.textTertiary,
                       )),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   _SettingsCard(
                     items: [
                       _SettingsItem(
@@ -157,13 +158,13 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
 
                   // Logout
                   OutlinedButton.icon(
                     onPressed: () => context.go(AppRoutes.login),
-                    icon: const Icon(Icons.logout_rounded,
-                        size: 18, color: AppColors.danger),
+                    icon: Icon(Icons.logout_rounded,
+                        size: 18.r, color: AppColors.danger),
                     label: Text('Sign Out',
                         style: AppTextStyles.buttonLarge
                             .copyWith(color: AppColors.danger)),
@@ -172,7 +173,7 @@ class ProfileScreen extends StatelessWidget {
                       foregroundColor: AppColors.danger,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40.h),
                 ],
               ),
             ),
@@ -192,7 +193,7 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -201,8 +202,8 @@ class _ProfileHeader extends StatelessWidget {
         children: [
           // Avatar
           Container(
-            width: 80,
-            height: 80,
+            width: 80.r,
+            height: 80.r,
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
               shape: BoxShape.circle,
@@ -219,16 +220,16 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14.h),
           Text(user.fullName as String, style: AppTextStyles.h2),
-          const SizedBox(height: 2),
+          SizedBox(height: 2.h),
           Text(user.email as String, style: AppTextStyles.bodyMedium),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
             decoration: BoxDecoration(
               color: AppColors.scoreColorLight(avgScore),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
             ),
             child: Text(
               'Avg Score: ${avgScore.toInt()} / 100',
@@ -252,7 +253,7 @@ class _StatsRow extends StatelessWidget {
     final totalKm = trips.fold(0.0, (s, t) => s + (t.distanceKm as double));
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 16.h),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -281,7 +282,7 @@ class _StatItem extends StatelessWidget {
       child: Column(
         children: [
           Text(value, style: AppTextStyles.h2),
-          const SizedBox(height: 2),
+          SizedBox(height: 2.h),
           Text(label, style: AppTextStyles.bodySmall),
         ],
       ),
@@ -292,7 +293,7 @@ class _StatItem extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 36, color: AppColors.border);
+    return Container(width: 1, height: 36.h, color: AppColors.border);
   }
 }
 
@@ -305,7 +306,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
@@ -346,21 +347,21 @@ class _SettingsItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16.r),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 34.r,
+              height: 34.r,
               decoration: BoxDecoration(
                 color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(9.r),
               ),
-              child: Icon(icon, size: 17, color: AppColors.primary),
+              child: Icon(icon, size: 17.r, color: AppColors.primary),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,8 +374,8 @@ class _SettingsItem extends StatelessWidget {
             ),
             trailing ??
                 (showArrow
-                    ? const Icon(Icons.chevron_right_rounded,
-                        size: 18, color: AppColors.textTertiary)
+                    ? Icon(Icons.chevron_right_rounded,
+                        size: 18.r, color: AppColors.textTertiary)
                     : const SizedBox.shrink()),
           ],
         ),

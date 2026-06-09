@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -26,15 +27,15 @@ class ReportsScreen extends StatelessWidget {
         actions: [
           TextButton.icon(
             onPressed: () {},
-            icon: const Icon(Icons.filter_list_rounded, size: 18),
+            icon: Icon(Icons.filter_list_rounded, size: 18.r),
             label: const Text('Filter'),
           ),
         ],
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.r),
         itemCount: trips.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        separatorBuilder: (_, __) => SizedBox(height: 14.h),
         itemBuilder: (context, index) => _ReportCard(trip: trips[index]),
       ),
     );
@@ -472,7 +473,6 @@ class _ReportCardState extends State<_ReportCard> {
             ),
             pw.LayoutBuilder(
               builder: (ctx, constraints) {
-                // Safely handle if constraints or maxWidth is null
                 final maxWidth = constraints?.maxWidth ?? 400.0;
                 return pw.Container(
                   width: maxWidth * (value / 100),
@@ -531,7 +531,7 @@ class _ReportCardState extends State<_ReportCard> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.cardShadow,
       ),
@@ -539,21 +539,21 @@ class _ReportCardState extends State<_ReportCard> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: AppColors.scoreColorLight(score),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+                  BorderRadius.vertical(top: Radius.circular(16.r)),
             ),
             child: Row(
               children: [
                 ScoreBadge(score: score, size: 52),
-                const SizedBox(width: 14),
+                SizedBox(width: 14.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Trip Report',
                         style: AppTextStyles.labelLarge,
                       ),
@@ -566,10 +566,10 @@ class _ReportCardState extends State<_ReportCard> {
                 ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     'Grade ${widget.trip.score.grade}',
@@ -582,7 +582,7 @@ class _ReportCardState extends State<_ReportCard> {
 
           // Stats
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               children: [
                 _ReportRow(
@@ -630,33 +630,34 @@ class _ReportCardState extends State<_ReportCard> {
 
           // Actions
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: EdgeInsets.fromLTRB(16.r, 0, 16.r, 16.r),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _isDownloading ? null : _downloadReport,
                     icon: _isDownloading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        ? SizedBox(
+                            width: 16.r,
+                            height: 16.r,
+                            child: const CircularProgressIndicator(
+                                strokeWidth: 2),
                           )
-                        : const Icon(Icons.download_outlined, size: 16),
+                        : Icon(Icons.download_outlined, size: 16.r),
                     label: Text(_isDownloading ? 'Generating…' : 'Download'),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 42),
+                      minimumSize: Size(0, 42.h),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.share_outlined, size: 16),
+                    icon: Icon(Icons.share_outlined, size: 16.r),
                     label: const Text('Share'),
                     style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(0, 42),
+                      minimumSize: Size(0, 42.h),
                     ),
                   ),
                 ),
@@ -685,11 +686,11 @@ class _ReportRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textTertiary),
-          const SizedBox(width: 10),
+          Icon(icon, size: 16.r, color: AppColors.textTertiary),
+          SizedBox(width: 10.w),
           Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
           Text(
             value,
