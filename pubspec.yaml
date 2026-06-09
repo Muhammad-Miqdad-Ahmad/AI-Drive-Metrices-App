@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  supabase_flutter: ^2.14.1
+
   # Navigation
   go_router: ^13.0.0
 
