@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/storage/local_storage_service.dart';
 import '../../app_router.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -12,13 +13,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _confirmCtrl = TextEditingController();
-  bool _obscure = true;
-  bool _loading = false;
+  final _formKey      = GlobalKey<FormState>();
+  final _nameCtrl     = TextEditingController();
+  final _emailCtrl    = TextEditingController();
+  final _passCtrl     = TextEditingController();
+  final _confirmCtrl  = TextEditingController();
+  bool _obscure  = true;
+  bool _loading  = false;
+  String? _errorMsg;
 
   @override
   void dispose() {
@@ -31,10 +33,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() => _loading = false);
+    setState(() { _loading = true; _errorMsg = null; });
+
+    final error = await LocalStorageService.register(
+      fullName: _nameCtrl.text.trim(),
+      email:    _emailCtrl.text.trim(),
+      password: _passCtrl.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (error != null) {
+      setState(() => _errorMsg = error);
+    } else {
       context.go(AppRoutes.dashboard);
     }
   }
@@ -66,6 +78,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 36),
 
+              // Error banner
+              if (_errorMsg != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppColors.danger.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded,
+                          size: 16, color: AppColors.danger),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMsg!,
+                          style: AppTextStyles.bodySmall
+                              .copyWith(color: AppColors.danger),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               Form(
                 key: _formKey,
                 child: Column(
@@ -76,10 +116,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                        prefixIcon:
+                            Icon(Icons.person_outline_rounded, size: 20),
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Enter your name';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Enter your name';
+                        }
                         return null;
                       },
                     ),
@@ -105,7 +148,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        prefixIcon:
+                            const Icon(Icons.lock_outline, size: 20),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscure
@@ -135,7 +179,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         prefixIcon: Icon(Icons.lock_outline, size: 20),
                       ),
                       validator: (v) {
-                        if (v != _passCtrl.text) return 'Passwords do not match';
+                        if (v != _passCtrl.text) {
+                          return 'Passwords do not match';
+                        }
                         return null;
                       },
                     ),
@@ -175,6 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 32),
             ],
           ),
         ),

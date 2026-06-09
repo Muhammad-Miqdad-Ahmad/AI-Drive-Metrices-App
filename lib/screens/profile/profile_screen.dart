@@ -3,15 +3,58 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/mock_data_service.dart';
+import '../../core/storage/local_storage_service.dart';
+import '../../models/models.dart';
 import '../../app_router.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  UserModel? _user;
+  bool _loadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await LocalStorageService.getCurrentUser();
+    if (mounted) setState(() { _user = user; _loadingUser = false; });
+  }
+
+  Future<void> _logout() async {
+    await LocalStorageService.logout();
+    if (mounted) context.go(AppRoutes.login);
+  }
+
+  void _showEditProfile() {
+    if (_user == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => _EditProfileDialog(
+        user: _user!,
+        onSaved: _loadUser,
+      ),
+    );
+  }
+
+  void _showChangePassword() {
+    showDialog(
+      context: context,
+      builder: (_) => const _ChangePasswordDialog(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = MockDataService.currentUser;
-    final trips = MockDataService.trips;
+    final trips    = MockDataService.trips;
     final avgScore = trips.map((t) => t.score.overall).reduce((a, b) => a + b) /
         trips.length;
 
@@ -23,173 +66,398 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () {},
+            onPressed: _showEditProfile,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile header
-            _ProfileHeader(user: user, avgScore: avgScore),
-
-            // Stats row
-            _StatsRow(trips: trips),
-
-            const SizedBox(height: 20),
-
-            // Settings sections
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+      body: _loadingUser
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Account',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        letterSpacing: 1.0,
-                        color: AppColors.textTertiary,
-                      )),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Edit Profile',
-                        onTap: () {},
-                      ),
-                      _SettingsItem(
-                        icon: Icons.notifications_outlined,
-                        label: 'Notifications',
-                        onTap: () {},
-                        trailing: _ToggleTrailing(),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.lock_outline_rounded,
-                        label: 'Change Password',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
+                  _ProfileHeader(user: _user, avgScore: avgScore),
+                  _StatsRow(trips: trips),
                   const SizedBox(height: 20),
-
-                  Text('Device',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        letterSpacing: 1.0,
-                        color: AppColors.textTertiary,
-                      )),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Icons.bluetooth_rounded,
-                        label: 'Paired Device',
-                        subtitle: 'DriveMetrics-A1B2',
-                        onTap: () => context.push(AppRoutes.devicePairing),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.successLight,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text('Connected',
-                              style: AppTextStyles.labelSmall
-                                  .copyWith(color: AppColors.success)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sectionLabel('Account'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Icons.person_outline_rounded,
+                              label: 'Edit Profile',
+                              onTap: _showEditProfile,
+                            ),
+                            _SettingsItem(
+                              icon: Icons.notifications_outlined,
+                              label: 'Notifications',
+                              onTap: () {},
+                              trailing: _ToggleTrailing(),
+                            ),
+                            _SettingsItem(
+                              icon: Icons.lock_outline_rounded,
+                              label: 'Change Password',
+                              onTap: _showChangePassword,
+                            ),
+                          ],
                         ),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.tune_rounded,
-                        label: 'Sensor Calibration',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                  Text('Preferences',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        letterSpacing: 1.0,
-                        color: AppColors.textTertiary,
-                      )),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Icons.speed_rounded,
-                        label: 'Speed Unit',
-                        subtitle: 'km/h',
-                        onTap: () {},
-                      ),
-                      _SettingsItem(
-                        icon: Icons.language_rounded,
-                        label: 'Language',
-                        subtitle: 'English',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                        _sectionLabel('Device'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Icons.bluetooth_rounded,
+                              label: 'Paired Device',
+                              subtitle: 'DriveMetrics-A1B2',
+                              onTap: () => context.push(AppRoutes.devicePairing),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('Connected',
+                                    style: AppTextStyles.labelSmall
+                                        .copyWith(color: AppColors.success)),
+                              ),
+                            ),
+                            _SettingsItem(
+                              icon: Icons.tune_rounded,
+                              label: 'Sensor Calibration',
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
 
-                  Text('Support',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        letterSpacing: 1.0,
-                        color: AppColors.textTertiary,
-                      )),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Icons.help_outline_rounded,
-                        label: 'Help & FAQ',
-                        onTap: () {},
-                      ),
-                      _SettingsItem(
-                        icon: Icons.privacy_tip_outlined,
-                        label: 'Privacy Policy',
-                        onTap: () {},
-                      ),
-                      _SettingsItem(
-                        icon: Icons.info_outline_rounded,
-                        label: 'App Version',
-                        subtitle: 'v1.0.0',
-                        onTap: () {},
-                        showArrow: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                        _sectionLabel('Preferences'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Icons.speed_rounded,
+                              label: 'Speed Unit',
+                              subtitle: 'km/h',
+                              onTap: () {},
+                            ),
+                            _SettingsItem(
+                              icon: Icons.language_rounded,
+                              label: 'Language',
+                              subtitle: 'English',
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
 
-                  // Logout
-                  OutlinedButton.icon(
-                    onPressed: () => context.go(AppRoutes.login),
-                    icon: const Icon(Icons.logout_rounded,
-                        size: 18, color: AppColors.danger),
-                    label: Text('Sign Out',
-                        style: AppTextStyles.buttonLarge
-                            .copyWith(color: AppColors.danger)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.danger),
-                      foregroundColor: AppColors.danger,
+                        _sectionLabel('Support'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Icons.help_outline_rounded,
+                              label: 'Help & FAQ',
+                              onTap: () {},
+                            ),
+                            _SettingsItem(
+                              icon: Icons.privacy_tip_outlined,
+                              label: 'Privacy Policy',
+                              onTap: () {},
+                            ),
+                            _SettingsItem(
+                              icon: Icons.info_outline_rounded,
+                              label: 'App Version',
+                              subtitle: 'v1.0.0',
+                              onTap: () {},
+                              showArrow: false,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        OutlinedButton.icon(
+                          onPressed: _logout,
+                          icon: const Icon(Icons.logout_rounded,
+                              size: 18, color: AppColors.danger),
+                          label: Text('Sign Out',
+                              style: AppTextStyles.buttonLarge
+                                  .copyWith(color: AppColors.danger)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.danger),
+                            foregroundColor: AppColors.danger,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
                 ],
               ),
+            ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: AppTextStyles.labelMedium.copyWith(
+          letterSpacing: 1.0,
+          color: AppColors.textTertiary,
+        ),
+      );
+}
+
+// ─── Edit Profile Dialog ───────────────────────────────────────────────────
+
+class _EditProfileDialog extends StatefulWidget {
+  final UserModel user;
+  final VoidCallback onSaved;
+  const _EditProfileDialog({required this.user, required this.onSaved});
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _emailCtrl;
+  final _formKey = GlobalKey<FormState>();
+  bool _loading  = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl  = TextEditingController(text: widget.user.fullName);
+    _emailCtrl = TextEditingController(text: widget.user.email);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+
+    final err = await LocalStorageService.updateProfile(
+      fullName: _nameCtrl.text.trim(),
+      email:    _emailCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (err != null) {
+      setState(() => _error = err);
+    } else {
+      widget.onSaved();
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Profile', style: AppTextStyles.h3),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_error != null) ...[
+              Text(_error!,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.danger)),
+              const SizedBox(height: 12),
+            ],
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(labelText: 'Full Name'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                if (!v.contains('@')) return 'Invalid email';
+                return null;
+              },
             ),
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _loading ? null : _save,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Save'),
+        ),
+      ],
     );
   }
 }
 
+// ─── Change Password Dialog ────────────────────────────────────────────────
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _formKey     = GlobalKey<FormState>();
+  final _currentCtrl = TextEditingController();
+  final _newCtrl     = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+
+    final err = await LocalStorageService.changePassword(
+      currentPassword: _currentCtrl.text,
+      newPassword:     _newCtrl.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (err != null) {
+      setState(() => _error = err);
+    } else {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password updated successfully')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Change Password', style: AppTextStyles.h3),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_error != null) ...[
+              Text(_error!,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.danger)),
+              const SizedBox(height: 12),
+            ],
+            TextFormField(
+              controller: _currentCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Current Password',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                      size: 18, color: AppColors.textTertiary),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _newCtrl,
+              obscureText: _obscure,
+              decoration: const InputDecoration(labelText: 'New Password'),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                if (v.length < 6) return 'Minimum 6 characters';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _confirmCtrl,
+              obscureText: _obscure,
+              decoration:
+                  const InputDecoration(labelText: 'Confirm New Password'),
+              validator: (v) =>
+                  v != _newCtrl.text ? 'Passwords do not match' : null,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _loading ? null : _save,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Update'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Sub-widgets ───────────────────────────────────────────────────────────
+
 class _ProfileHeader extends StatelessWidget {
-  final dynamic user;
+  final UserModel? user;
   final double avgScore;
   const _ProfileHeader({required this.user, required this.avgScore});
 
   @override
   Widget build(BuildContext context) {
+    final name  = user?.fullName ?? 'User';
+    final email = user?.email    ?? '';
+    final initials = name
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase())
+        .take(2)
+        .join();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -199,7 +467,6 @@ class _ProfileHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Avatar
           Container(
             width: 80,
             height: 80,
@@ -210,19 +477,15 @@ class _ProfileHeader extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                (user.fullName as String)
-                    .split(' ')
-                    .map((w) => w[0])
-                    .take(2)
-                    .join(),
+                initials,
                 style: AppTextStyles.h2.copyWith(color: Colors.white),
               ),
             ),
           ),
           const SizedBox(height: 14),
-          Text(user.fullName as String, style: AppTextStyles.h2),
+          Text(name, style: AppTextStyles.h2),
           const SizedBox(height: 2),
-          Text(user.email as String, style: AppTextStyles.bodyMedium),
+          Text(email, style: AppTextStyles.bodyMedium),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -249,7 +512,8 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalKm = trips.fold(0.0, (s, t) => s + (t.distanceKm as double));
+    final totalKm =
+        trips.fold(0.0, (s, t) => s + (t.distanceKm as double));
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -311,7 +575,7 @@ class _SettingsCard extends StatelessWidget {
       ),
       child: Column(
         children: items.asMap().entries.map((entry) {
-          final i = entry.key;
+          final i    = entry.key;
           final item = entry.value;
           return Column(
             children: [

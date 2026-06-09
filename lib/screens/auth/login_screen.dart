@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/storage/local_storage_service.dart';
 import '../../app_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,11 +13,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey   = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  bool _obscure = true;
-  bool _loading = false;
+  final _passCtrl  = TextEditingController();
+  bool _obscure  = true;
+  bool _loading  = false;
+  String? _errorMsg;
 
   @override
   void dispose() {
@@ -27,10 +29,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() => _loading = false);
+    setState(() { _loading = true; _errorMsg = null; });
+
+    final error = await LocalStorageService.login(
+      email:    _emailCtrl.text.trim(),
+      password: _passCtrl.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (error != null) {
+      setState(() => _errorMsg = error);
+    } else {
       context.go(AppRoutes.dashboard);
     }
   }
@@ -46,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 48),
-              // Header
+              // Header icon
               Container(
                 width: 56,
                 height: 56,
@@ -66,6 +77,34 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: AppTextStyles.bodyMedium,
               ),
               const SizedBox(height: 40),
+
+              // Error banner
+              if (_errorMsg != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppColors.danger.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded,
+                          size: 16, color: AppColors.danger),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMsg!,
+                          style: AppTextStyles.bodySmall
+                              .copyWith(color: AppColors.danger),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Form
               Form(
@@ -94,7 +133,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       onFieldSubmitted: (_) => _login(),
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        prefixIcon:
+                            const Icon(Icons.lock_outline, size: 20),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscure
@@ -103,18 +143,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             size: 20,
                             color: AppColors.textTertiary,
                           ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+                          onPressed: () =>
+                              setState(() => _obscure = !_obscure),
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Enter your password';
-                        }
-
-                        if (v.length < 6) {
-                          return 'Minimum 6 characters';
-                        }
-
+                        if (v == null || v.isEmpty) return 'Enter your password';
+                        if (v.length < 6) return 'Minimum 6 characters';
                         return null;
                       },
                     ),
@@ -146,7 +181,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 24),
 
-              // Divider
               const Row(
                 children: [
                   Expanded(child: Divider()),
@@ -160,7 +194,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 24),
 
-              // Register link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -180,31 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               const SizedBox(height: 32),
-
-              // Demo hint
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 16, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Use any email/password to explore the demo',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.primary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
