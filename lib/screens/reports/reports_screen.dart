@@ -8,7 +8,6 @@ import '../../core/services/supabase_service.dart';
 import '../../core/storage/local_storage_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/models.dart';
-import '../../widgets/common/score_gauge_widget.dart';
 import 'dart:typed_data';
 
 class ReportsScreen extends StatefulWidget {
@@ -122,6 +121,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 }
+
 // ---- Report card ----------------------------------------------------------
 
 class _ReportCard extends StatefulWidget {
@@ -177,7 +177,7 @@ class _ReportCardState extends State<_ReportCard> {
   static const _blue = PdfColor.fromInt(0xFF007AFF);
   static const _white = PdfColors.white;
 
-  // ---- Solid semantic background colours (no alpha — renders reliably) -----
+  // ---- Solid semantic background colours (no alpha) -----------------------
 
   static const _redBg = PdfColor.fromInt(0xFFFFF0EF);
   static const _redBorder = PdfColor.fromInt(0xFFFFCCCA);
@@ -763,15 +763,15 @@ class _ReportCardState extends State<_ReportCard> {
     );
   }
 
-  // ---- Header chip ---------------------------------------------------------
+  // ---- Header chip (PDF Layout) --------------------------------------------
 
   pw.Widget _headerChip(String text, {bool danger = false}) {
     final bg = danger
         ? const PdfColor.fromInt(0xBFFF3B30)
-        : const PdfColor.fromInt(0x26FFFFFF);
+        : const PdfColor.fromInt(0x33000000);
     final brd = danger
         ? const PdfColor.fromInt(0x80FF3B30)
-        : const PdfColor.fromInt(0x40FFFFFF);
+        : const PdfColor.fromInt(0x26FFFFFF);
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: pw.BoxDecoration(
@@ -1033,7 +1033,7 @@ class _ReportCardState extends State<_ReportCard> {
                   width: 78,
                   height: 78,
                   decoration: pw.BoxDecoration(
-                    color: const PdfColor.fromInt(0x26FFFFFF),
+                    color: const PdfColor.fromInt(0x4D0B1B3E),
                     shape: pw.BoxShape.circle,
                     border: pw.Border.all(color: scoreColor, width: 3.5),
                   ),
@@ -1043,7 +1043,7 @@ class _ReportCardState extends State<_ReportCard> {
                       children: [
                         pw.Text(score.toInt().toString(),
                             style: pw.TextStyle(
-                                fontSize: 28,
+                                fontSize: 26,
                                 fontWeight: pw.FontWeight.bold,
                                 color: _white)),
                         pw.Text(trip.score.grade,
@@ -1267,7 +1267,7 @@ class _ReportCardState extends State<_ReportCard> {
     return pdf.save();
   }
 
-  // ---- Flutter card UI -----------------------------------------------------
+  // ---- Attractive Flutter Screen Card UI Configuration ----------------------
 
   @override
   Widget build(BuildContext context) {
@@ -1282,32 +1282,45 @@ class _ReportCardState extends State<_ReportCard> {
         : DateFormatter.time(trip.startTime);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0A2463), Color(0xFF0057FF)],
+          colors: [Color(0xFF0F2B6C), Color(0xFF0049D6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppColors.cardShadow,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0A2463).withValues(alpha: 0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Core Header Row Layout
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 1. Dynamic Score Circle Dashboard Element
                 Container(
-                  width: 78,
-                  height: 78,
+                  width: 82,
+                  height: 82,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.25),
                     shape: BoxShape.circle,
                     border: Border.all(color: scoreColor, width: 3.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scoreColor.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      )
+                    ],
                   ),
                   child: Center(
                     child: Column(
@@ -1316,16 +1329,18 @@ class _ReportCardState extends State<_ReportCard> {
                         Text(
                           score.toInt().toString(),
                           style: const TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
+                            letterSpacing: -0.5,
                           ),
                         ),
+                        const SizedBox(height: 1),
                         Text(
                           trip.score.grade,
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
                             color: scoreColor,
                           ),
                         ),
@@ -1334,46 +1349,59 @@ class _ReportCardState extends State<_ReportCard> {
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                // 2. Info Fields & Dynamic Metric Pill Wrap Layout
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 14, color: Colors.amber[300]),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'DRIVE METRICS AI',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF90B4FF),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
                       const Text(
-                        'DRIVE METRICS AI - Trip Safety Report',
+                        'Trip Safety Report',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${DateFormatter.tripDate(trip.startTime)}   $timeRange',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withOpacity(0.75),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Row containing active data chips instead of empty styles
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      const SizedBox(height: 6),
+                      Row(
                         children: [
-                          _buildHeaderChip(
-                              '${trip.distanceKm.toStringAsFixed(1)} km'),
-                          _buildHeaderChip(trip.durationLabel),
-                          _buildHeaderChip(
-                              'Max ${trip.maxSpeedKmh.toInt()} km/h'),
-                          _buildHeaderChip(
-                              'Avg ${trip.avgSpeedKmh.toInt()} km/h'),
-                          if (totalHarshEvents > 0)
-                            _buildHeaderChip('$totalHarshEvents harsh events',
-                                isDanger: true),
+                          const Icon(Icons.calendar_today_rounded,
+                              size: 12, color: Colors.white60),
+                          const SizedBox(width: 5),
+                          Text(
+                            DateFormatter.tripDate(trip.startTime),
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white60,
+                                fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.schedule_rounded,
+                              size: 12, color: Colors.white60),
+                          const SizedBox(width: 5),
+                          Text(
+                            timeRange,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white60,
+                                fontWeight: FontWeight.w500),
+                          ),
                         ],
                       ),
                     ],
@@ -1383,19 +1411,79 @@ class _ReportCardState extends State<_ReportCard> {
             ),
           ),
 
-          // 3. Action Callout Footer
+          // 2. Metrics Dashboard Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMetricStat(
+                      'Distance',
+                      '${trip.distanceKm.toStringAsFixed(1)} km',
+                      Icons.space_dashboard_rounded,
+                      const Color(0xFF4FA0FF)),
+                  _buildDivider(),
+                  _buildMetricStat('Duration', trip.durationLabel,
+                      Icons.timelapse_rounded, const Color(0xFFFFB236)),
+                  _buildDivider(),
+                  _buildMetricStat(
+                      'Max Speed',
+                      '${trip.maxSpeedKmh.toInt()} km/h',
+                      Icons.speed_rounded,
+                      const Color(0xFFFF5252)),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. Info Pill Section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _buildHeaderChip('Avg Speed: ${trip.avgSpeedKmh.toInt()} km/h',
+                    icon: Icons.analytics_outlined),
+                if (trip.harshBrakingCount > 0)
+                  _buildHeaderChip('${trip.harshBrakingCount} Braking Events',
+                      icon: Icons.front_hand_rounded, isDanger: true),
+                if (trip.sharpTurnCount > 0)
+                  _buildHeaderChip('${trip.sharpTurnCount} Sharp Turns',
+                      icon: Icons.turn_sharp_right_rounded, isWarning: true),
+                if (trip.hardAccelCount > 0)
+                  _buildHeaderChip('${trip.hardAccelCount} Hard Accels',
+                      icon: Icons.bolt_rounded, isInfo: true),
+                if (totalHarshEvents == 0)
+                  _buildHeaderChip('Perfect Smooth Drive',
+                      icon: Icons.verified_user_rounded, isSuccess: true),
+              ],
+            ),
+          ),
+
+          // 4. Download Footer Bar
           Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.22),
               borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  const BorderRadius.vertical(bottom: Radius.circular(20)),
+              border: Border(
+                  top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
             ),
             child: InkWell(
               onTap: _isDownloading ? null : _downloadReport,
               borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  const BorderRadius.vertical(bottom: Radius.circular(20)),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1410,17 +1498,18 @@ class _ReportCardState extends State<_ReportCard> {
                         ),
                       )
                     else
-                      const Icon(Icons.download_rounded,
-                          size: 18, color: Colors.white),
+                      const Icon(Icons.picture_as_pdf_rounded,
+                          size: 18, color: Color(0xFF79A7FF)),
                     const SizedBox(width: 8),
                     Text(
                       _isDownloading
-                          ? 'Generating PDF...'
+                          ? 'Generating Document...'
                           : 'Download Full PDF Report',
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
@@ -1433,28 +1522,84 @@ class _ReportCardState extends State<_ReportCard> {
     );
   }
 
-  Widget _buildHeaderChip(String text, {bool isDanger = false}) {
+  Widget _buildMetricStat(
+      String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+              fontSize: 9,
+              color: Colors.white.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivider() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      height: 28,
+      width: 1,
+      color: Colors.white.withValues(alpha: 0.08),
+    );
+  }
+
+  Widget _buildHeaderChip(String text,
+      {required IconData icon,
+      bool isDanger = false,
+      bool isWarning = false,
+      bool isInfo = false,
+      bool isSuccess = false}) {
+    Color chipBg = Colors.black.withValues(alpha: 0.2);
+    Color contentColor = Colors.white.withValues(alpha: 0.9);
+
+    if (isDanger) {
+      chipBg = const Color(0xFFBA1A1A).withValues(alpha: 0.5);
+      contentColor = const Color(0xFFFFDAD6);
+    } else if (isWarning) {
+      chipBg = const Color(0xFF8B6200).withValues(alpha: 0.5);
+      contentColor = const Color(0xFFFFE082);
+    } else if (isInfo) {
+      chipBg = const Color(0xFF0043CE).withValues(alpha: 0.4);
+      contentColor = const Color(0xFFD0E1FF);
+    } else if (isSuccess) {
+      chipBg = const Color(0xFF006D35).withValues(alpha: 0.4);
+      contentColor = const Color(0xFFB4F4C1);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color:
-            isDanger ? const Color(0xFFFF3B30) : Colors.white.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(20),
+        color: chipBg,
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: Colors.white.withOpacity(0.25),
+          color: contentColor.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: contentColor),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: contentColor,
+            ),
+          ),
+        ],
       ),
     );
   }
