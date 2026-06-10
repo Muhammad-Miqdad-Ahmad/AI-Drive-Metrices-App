@@ -1318,20 +1318,21 @@ class _ReportCardState extends State<_ReportCard> {
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           score.toInt().toString(),
                           style: TextStyle(
-                            fontSize: 26.sp,
+                            fontSize: 24.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             letterSpacing: -0.5,
+                            height: 1.1,
                           ),
                         ),
-                        SizedBox(height: 1.h),
                         Text(
                           trip.score.grade,
-                          style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w800, color: scoreColor),
+                          style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w800, color: scoreColor, height: 1.1),
                         ),
                       ],
                     ),

@@ -44,18 +44,30 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final token = await LocalStorageService.getDeviceToken();
       if (token == null) {
-        setState(() { _trips = []; _loading = false; });
+        setState(() {
+          _trips = [];
+          _loading = false;
+        });
         return;
       }
       final svc = SupabaseService(deviceToken: token);
       final trips = await svc.getRecentTrips(limit: 100);
-      setState(() { _trips = trips; _loading = false; });
+      setState(() {
+        _trips = trips;
+        _loading = false;
+      });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -104,7 +116,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
-            expandedHeight: _trips.isEmpty ? 60.h : 200.h,
+            expandedHeight: _trips.isEmpty ? 60.h : 220.h,
             pinned: true,
             backgroundColor: AppColors.surface,
             elevation: 0,
@@ -168,7 +180,8 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
           children: [
             Icon(Icons.cloud_off_rounded, size: 48.r, color: AppColors.danger),
             SizedBox(height: 12.h),
-            Text(_error!, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+            Text(_error!,
+                style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
             SizedBox(height: 16.h),
             ElevatedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -202,13 +215,15 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 12.h),
-              _MonthHeader(month: month, count: monthTrips.length, avgScore: monthAvg),
+              _MonthHeader(
+                  month: month, count: monthTrips.length, avgScore: monthAvg),
               SizedBox(height: 8.h),
               ...monthTrips.asMap().entries.map((e) => Padding(
                     padding: EdgeInsets.only(bottom: 10.h),
                     child: _EnhancedTripCard(
                       trip: e.value,
-                      onTap: () => context.push('/trips/${e.value.id}', extra: e.value),
+                      onTap: () =>
+                          context.push('/trips/${e.value.id}', extra: e.value),
                     ),
                   )),
             ],
@@ -220,8 +235,18 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
 
   String _monthKey(DateTime dt) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
     return '${months[dt.month - 1]} ${dt.year}';
   }
@@ -247,7 +272,7 @@ class _SummaryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 72.h, 20.w, 8.h),
+      padding: EdgeInsets.fromLTRB(20.w, 72.h, 20.w, 52.h),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF0A2463), Color(0xFF0057FF)],
@@ -257,13 +282,25 @@ class _SummaryBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _BannerStat(value: avgScore.toInt().toString(), label: 'Avg Score', icon: Icons.shield_outlined),
+          _BannerStat(
+              value: avgScore.toInt().toString(),
+              label: 'Avg Score',
+              icon: Icons.shield_outlined),
           _BannerDivider(),
-          _BannerStat(value: '${totalDistance.toStringAsFixed(0)} km', label: 'Total Dist', icon: Icons.route_rounded),
+          _BannerStat(
+              value: '${totalDistance.toStringAsFixed(0)} km',
+              label: 'Total Dist',
+              icon: Icons.route_rounded),
           _BannerDivider(),
-          _BannerStat(value: '$goodTrips/$totalTrips', label: 'Good Trips', icon: Icons.thumb_up_outlined),
+          _BannerStat(
+              value: '$goodTrips/$totalTrips',
+              label: 'Good Trips',
+              icon: Icons.thumb_up_outlined),
           _BannerDivider(),
-          _BannerStat(value: totalEvents.toString(), label: 'Events', icon: Icons.warning_amber_rounded),
+          _BannerStat(
+              value: totalEvents.toString(),
+              label: 'Events',
+              icon: Icons.warning_amber_rounded),
         ],
       ),
     );
@@ -274,18 +311,27 @@ class _BannerStat extends StatelessWidget {
   final String value;
   final String label;
   final IconData icon;
-  const _BannerStat({required this.value, required this.label, required this.icon});
+  const _BannerStat(
+      {required this.value, required this.label, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18.r, color: Colors.white70),
-          SizedBox(height: 4.h),
-          Text(value, style: AppTextStyles.h4.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-          Text(label, style: AppTextStyles.overline.copyWith(color: Colors.white60)),
+          Icon(icon, size: 14.r, color: Colors.white70),
+          SizedBox(height: 2.h),
+          Text(value,
+              style: AppTextStyles.h4.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.sp,
+                  height: 1.1)),
+          Text(label,
+              style: AppTextStyles.overline.copyWith(
+                  color: Colors.white60, fontSize: 9.sp, height: 1.1)),
         ],
       ),
     );
@@ -305,13 +351,16 @@ class _MonthHeader extends StatelessWidget {
   final String month;
   final int count;
   final double avgScore;
-  const _MonthHeader({required this.month, required this.count, required this.avgScore});
+  const _MonthHeader(
+      {required this.month, required this.count, required this.avgScore});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(month, style: AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary)),
+        Text(month,
+            style: AppTextStyles.labelLarge
+                .copyWith(color: AppColors.textSecondary)),
         SizedBox(width: 8.w),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
@@ -331,11 +380,13 @@ class _MonthHeader extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.bar_chart_rounded, size: 12.r, color: AppColors.scoreColor(avgScore)),
+              Icon(Icons.bar_chart_rounded,
+                  size: 12.r, color: AppColors.scoreColor(avgScore)),
               SizedBox(width: 4.w),
               Text(
                 'Avg ${avgScore.toInt()}',
-                style: AppTextStyles.overline.copyWith(color: AppColors.scoreColor(avgScore)),
+                style: AppTextStyles.overline
+                    .copyWith(color: AppColors.scoreColor(avgScore)),
               ),
             ],
           ),
@@ -379,22 +430,29 @@ class _EnhancedTripCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: scoreColorLight,
                       borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(color: scoreColor.withValues(alpha: 0.3), width: 1.5),
+                      border: Border.all(
+                          color: scoreColor.withValues(alpha: 0.3), width: 1.5),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           score.toInt().toString(),
                           style: TextStyle(
-                            fontSize: 18.sp,
+                            fontSize: 15.sp,
                             fontWeight: FontWeight.bold,
                             color: scoreColor,
+                            height: 1.1,
                           ),
                         ),
                         Text(
                           trip.score.grade,
-                          style: TextStyle(fontSize: 10.sp, color: scoreColor, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 9.sp,
+                              color: scoreColor,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1),
                         ),
                       ],
                     ),
@@ -404,9 +462,11 @@ class _EnhancedTripCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(DateFormatter.tripDate(trip.startTime), style: AppTextStyles.labelLarge),
+                        Text(DateFormatter.tripDate(trip.startTime),
+                            style: AppTextStyles.labelLarge),
                         SizedBox(height: 2.h),
-                        Text(DateFormatter.time(trip.startTime), style: AppTextStyles.bodySmall),
+                        Text(DateFormatter.time(trip.startTime),
+                            style: AppTextStyles.bodySmall),
                       ],
                     ),
                   ),
@@ -417,7 +477,8 @@ class _EnhancedTripCard extends StatelessWidget {
                         children: [
                           if (trip.harshEventCount > 0)
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6.w, vertical: 3.h),
                               decoration: BoxDecoration(
                                 color: AppColors.dangerLight,
                                 borderRadius: BorderRadius.circular(6.r),
@@ -425,17 +486,22 @@ class _EnhancedTripCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.warning_amber_rounded, size: 10.r, color: AppColors.danger),
+                                  Icon(Icons.warning_amber_rounded,
+                                      size: 10.r, color: AppColors.danger),
                                   SizedBox(width: 3.w),
                                   Text(
                                     '${trip.harshEventCount}',
-                                    style: TextStyle(fontSize: 10.sp, color: AppColors.danger, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        fontSize: 10.sp,
+                                        color: AppColors.danger,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
                             ),
                           SizedBox(width: 6.w),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: AppColors.textTertiary),
                         ],
                       ),
                     ],
@@ -447,15 +513,21 @@ class _EnhancedTripCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16.r)),
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(16.r)),
               ),
               child: Row(
                 children: [
-                  _MiniStat(icon: Icons.route_rounded, value: '${trip.distanceKm.toStringAsFixed(1)} km'),
+                  _MiniStat(
+                      icon: Icons.route_rounded,
+                      value: '${trip.distanceKm.toStringAsFixed(1)} km'),
                   _StatDot(),
-                  _MiniStat(icon: Icons.timer_outlined, value: trip.durationLabel),
+                  _MiniStat(
+                      icon: Icons.timer_outlined, value: trip.durationLabel),
                   _StatDot(),
-                  _MiniStat(icon: Icons.speed_rounded, value: '${trip.maxSpeedKmh.toInt()} km/h max'),
+                  _MiniStat(
+                      icon: Icons.speed_rounded,
+                      value: '${trip.maxSpeedKmh.toInt()} km/h max'),
                   const Spacer(),
                   _ScoreBar(score: score, color: scoreColor),
                 ],
@@ -493,7 +565,8 @@ class _StatDot extends StatelessWidget {
       width: 3.r,
       height: 3.r,
       margin: EdgeInsets.symmetric(horizontal: 6.w),
-      decoration: const BoxDecoration(color: AppColors.textTertiary, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+          color: AppColors.textTertiary, shape: BoxShape.circle),
     );
   }
 }
@@ -539,13 +612,17 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(24.r),
             ),
-            child: Icon(Icons.route_rounded, size: 40.r, color: AppColors.primary),
+            child:
+                Icon(Icons.route_rounded, size: 40.r, color: AppColors.primary),
           ),
           SizedBox(height: 20.h),
-          Text(filter == 'All' ? 'No trips yet' : 'No $filter trips', style: AppTextStyles.h3),
+          Text(filter == 'All' ? 'No trips yet' : 'No $filter trips',
+              style: AppTextStyles.h3),
           SizedBox(height: 8.h),
           Text(
-            filter == 'All' ? 'Connect your device and start driving' : 'Try a different filter',
+            filter == 'All'
+                ? 'Connect your device and start driving'
+                : 'Try a different filter',
             style: AppTextStyles.bodyMedium,
             textAlign: TextAlign.center,
           ),

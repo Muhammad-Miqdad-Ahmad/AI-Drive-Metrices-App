@@ -39,13 +39,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       _user = await LocalStorageService.getCurrentUser();
       _deviceToken = await LocalStorageService.getDeviceToken();
 
       if (_deviceToken == null) {
-        setState(() { _loading = false; });
+        setState(() {
+          _loading = false;
+        });
         return;
       }
 
@@ -63,7 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _loading = false;
       });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -84,9 +92,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_error != null)
-              SliverFillRemaining(child: _ErrorState(message: _error!, onRetry: _load))
+              SliverFillRemaining(
+                  child: _ErrorState(message: _error!, onRetry: _load))
             else if (_deviceToken == null)
-              SliverFillRemaining(child: _NoPairingState(onPair: () => context.push(AppRoutes.devicePairing)))
+              SliverFillRemaining(
+                  child: _NoPairingState(
+                      onPair: () => context.push(AppRoutes.devicePairing)))
             else
               SliverPadding(
                 padding: EdgeInsets.all(20.r),
@@ -118,7 +129,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: EdgeInsets.only(bottom: 12.h),
                           child: TripCard(
                             trip: trip,
-                            onTap: () => context.push('/trips/${trip.id}', extra: trip),
+                            onTap: () =>
+                                context.push('/trips/${trip.id}', extra: trip),
                           ),
                         ),
                       ),
@@ -141,6 +153,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floating: false,
       pinned: true,
       backgroundColor: AppColors.primary,
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: 12.w),
+          child: Container(
+            width: 40.r,
+            height: 40.r,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Icon(Icons.notifications_outlined,
+                color: Colors.white, size: 20.r),
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
@@ -148,66 +175,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
-              child: Row(
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 72.w, 0),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(
+                    'Good ${_greeting()},',
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: Colors.white.withValues(alpha: 0.7)),
+                  ),
+                  Text(
+                    firstName,
+                    style: AppTextStyles.h2.copyWith(color: Colors.white),
+                  ),
+                  SizedBox(height: 4.h),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'Good ${_greeting()},',
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: Colors.white.withValues(alpha: 0.7)),
-                        ),
-                        Text(
-                          firstName,
-                          style: AppTextStyles.h2.copyWith(color: Colors.white),
-                        ),
-                        SizedBox(height: 4.h),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                          width: 6.r,
+                          height: 6.r,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20.r),
+                            color: _deviceToken != null
+                                ? AppColors.accent
+                                : AppColors.warning,
+                            shape: BoxShape.circle,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6.r,
-                                height: 6.r,
-                                decoration: BoxDecoration(
-                                  color: _deviceToken != null
-                                      ? AppColors.accent
-                                      : AppColors.warning,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              SizedBox(width: 6.w),
-                              Text(
-                                _deviceToken != null
-                                    ? 'Device Connected'
-                                    : 'No Device Paired',
-                                style: AppTextStyles.labelSmall
-                                    .copyWith(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          _deviceToken != null
+                              ? 'Device Connected'
+                              : 'No Device Paired',
+                          style: AppTextStyles.labelSmall
+                              .copyWith(color: Colors.white),
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    width: 40.r,
-                    height: 40.r,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Icon(Icons.notifications_outlined,
-                        color: Colors.white, size: 20.r),
                   ),
                 ],
               ),
@@ -224,15 +235,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         titlePadding: EdgeInsets.only(left: 20.w, bottom: 16.h),
         collapseMode: CollapseMode.parallax,
       ),
-      actions: [
-        Padding(
-          padding: EdgeInsets.only(right: 12.w),
-          child: IconButton(
-            icon: Icon(Icons.bluetooth_rounded, color: Colors.white, size: 22.r),
-            onPressed: () => context.push(AppRoutes.devicePairing),
-          ),
-        ),
-      ],
     );
   }
 
@@ -263,7 +265,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       _stats.avgScore.toInt().toString(),
-                      style: AppTextStyles.display1.copyWith(color: Colors.white),
+                      style:
+                          AppTextStyles.display1.copyWith(color: Colors.white),
                     ),
                     Padding(
                       padding: EdgeInsets.only(bottom: 10.h, left: 4.w),
@@ -277,14 +280,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SizedBox(height: 6.h),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
                     'Grade ${DriverScoreModel.gradeFromScore(_stats.avgScore)}',
-                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent),
+                    style: AppTextStyles.labelSmall
+                        .copyWith(color: AppColors.accent),
                   ),
                 ),
                 SizedBox(height: 12.h),
@@ -389,12 +394,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                   ),
-                  leftTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
@@ -413,8 +418,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? AppColors.primaryGradient
                             : LinearGradient(
                                 colors: [
-                                  AppColors.scoreColor(score).withValues(alpha: 0.4),
-                                  AppColors.scoreColor(score).withValues(alpha: 0.7),
+                                  AppColors.scoreColor(score)
+                                      .withValues(alpha: 0.4),
+                                  AppColors.scoreColor(score)
+                                      .withValues(alpha: 0.7),
                                 ],
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
