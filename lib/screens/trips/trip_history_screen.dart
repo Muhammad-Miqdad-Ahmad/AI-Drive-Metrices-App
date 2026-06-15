@@ -59,6 +59,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen>
       }
       final svc = SupabaseService(deviceToken: token);
       final trips = await svc.getRecentTrips(limit: 100);
+      if (trips.isEmpty) await svc.debugDump();
       setState(() {
         _trips = trips;
         _loading = false;

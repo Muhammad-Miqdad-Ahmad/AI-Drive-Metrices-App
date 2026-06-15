@@ -82,7 +82,7 @@ Deno.serve(async (_req) => {
       latitude: toNum(getField(f, 'latitude')),
       longitude: toNum(getField(f, 'longitude')),
       g_worst: toNum(getField(f, 'g_worst')),
-      recorded_at: f.created_at,
+      recorded_at: new Date().toISOString(),
     }));
 
     const { error: insertErr } = await supabase
