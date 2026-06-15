@@ -99,6 +99,37 @@ class SupabaseService {
     );
   }
 
+  // ─── ThingSpeak-sourced readings ──────────────────────────────────────────
+
+  /// Latest sensor reading synced from ThingSpeak (Prediction, Confidence,
+  /// Speed, Lat/Lng, worst G of the window).
+  Future<DeviceReading?> getLatestReading() async {
+    final data = await _client
+        .from('device_readings')
+        .select()
+        .eq('device_token', deviceToken)
+        .order('recorded_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return DeviceReading.fromSupabase(data);
+  }
+
+  /// Recent readings synced from ThingSpeak, newest first.
+  Future<List<DeviceReading>> getRecentReadings({int limit = 50}) async {
+    final data = await _client
+        .from('device_readings')
+        .select()
+        .eq('device_token', deviceToken)
+        .order('recorded_at', ascending: false)
+        .limit(limit);
+
+    return (data as List)
+        .map((row) => DeviceReading.fromSupabase(row as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Last 7 days of scores for the weekly chart (one per trip, ordered by day).
   Future<List<Map<String, dynamic>>> getWeeklyScores() async {
     final since = DateTime.now().subtract(const Duration(days: 7));

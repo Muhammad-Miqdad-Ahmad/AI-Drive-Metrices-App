@@ -358,3 +358,38 @@ class HealthInsight {
         'severity': severity,
       };
 }
+
+// ─── Device Reading Model (from ThingSpeak via Supabase) ──────────────────
+class DeviceReading {
+  final String id;
+  final String prediction;
+  final double confidence;
+  final double speedKmh;
+  final double latitude;
+  final double longitude;
+  final double gWorst;
+  final DateTime recordedAt;
+
+  const DeviceReading({
+    required this.id,
+    required this.prediction,
+    required this.confidence,
+    required this.speedKmh,
+    required this.latitude,
+    required this.longitude,
+    required this.gWorst,
+    required this.recordedAt,
+  });
+
+  factory DeviceReading.fromSupabase(Map<String, dynamic> json) =>
+      DeviceReading(
+        id: json['id'] as String,
+        prediction: (json['prediction'] as String?) ?? 'Unknown',
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+        speedKmh: (json['speed_kmh'] as num?)?.toDouble() ?? 0,
+        latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
+        longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
+        gWorst: (json['g_worst'] as num?)?.toDouble() ?? 0,
+        recordedAt: DateTime.parse(json['recorded_at'] as String),
+      );
+}
