@@ -476,7 +476,7 @@ class _EnhancedTripCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          if (trip.harshEventCount > 0)
+                          if (trip.harshEventCount > 0) ...[
                             Container(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 6.w, vertical: 3.h),
@@ -500,6 +500,14 @@ class _EnhancedTripCard extends StatelessWidget {
                                 ],
                               ),
                             ),
+                            if (trip.worstHarshnessLabel != null) ...[
+                              SizedBox(width: 4.w),
+                              _HarshnessBadge(
+                                label: trip.worstHarshnessLabel!,
+                                gForce: trip.worstGForce!,
+                              ),
+                            ],
+                          ],
                           SizedBox(width: 6.w),
                           const Icon(Icons.chevron_right_rounded,
                               color: AppColors.textTertiary),
@@ -588,6 +596,41 @@ class _ScoreBar extends StatelessWidget {
           value: score / 100,
           backgroundColor: AppColors.border,
           valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Harshness badge ───────────────────────────────────────────────────────
+
+class _HarshnessBadge extends StatelessWidget {
+  final String label;
+  final double gForce;
+  const _HarshnessBadge({required this.label, required this.gForce});
+
+  Color get _color {
+    if (gForce < 0.3) return const Color(0xFFF59E0B); // amber
+    if (gForce < 0.6) return const Color(0xFFF97316); // orange
+    return const Color(0xFFEF4444); // red
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(5.r),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        '${gForce.toStringAsFixed(2)}g · $label',
+        style: TextStyle(
+          fontSize: 8.5.sp,
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

@@ -656,7 +656,7 @@ class _ReportCardState extends State<_ReportCard> {
                 pw.Text('·',
                     style: const pw.TextStyle(fontSize: 9, color: _textGrey)),
                 pw.SizedBox(width: 8),
-                pw.Text('Confidence: ${(event.confidence * 100).toInt()}%',
+                pw.Text('Confidence: ${event.confidence.toInt()}%',
                     style: const pw.TextStyle(fontSize: 9, color: _textGrey)),
               ],
               if (event.latitude != 0) ...[
@@ -678,6 +678,26 @@ class _ReportCardState extends State<_ReportCard> {
                 _accelBadge('Y', event.accelY ?? 0, color, bgColor, bdColor),
                 pw.SizedBox(width: 5),
                 _accelBadge('Z', event.accelZ ?? 0, color, bgColor, bdColor),
+                if (event.gWorst != null && event.gWorst! > 0) ...[
+                  pw.SizedBox(width: 8),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: pw.BoxDecoration(
+                      color: bgColor,
+                      borderRadius: pw.BorderRadius.circular(4),
+                      border: pw.Border.all(color: color),
+                    ),
+                    child: pw.Text(
+                      'Peak: ${event.gWorst!.toStringAsFixed(2)}g'
+                      '${event.harshnessLabel != null ? " · ${event.harshnessLabel}" : ""}',
+                      style: pw.TextStyle(
+                          fontSize: 8,
+                          color: color,
+                          fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -1170,54 +1190,6 @@ class _ReportCardState extends State<_ReportCard> {
             ),
             pw.SizedBox(height: 8),
             ...harsh.map(_eventRow),
-          ],
-
-          if (allEvents.isNotEmpty && allEvents.length != harsh.length) ...[
-            _sectionHeading('All Events (${allEvents.length})'),
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: _bgLight,
-                borderRadius: pw.BorderRadius.circular(8),
-                border: pw.Border.all(color: _borderColor),
-              ),
-              child: pw.Column(
-                children: allEvents.map((e) {
-                  final c = _eventColor(e.type);
-                  return pw.Padding(
-                    padding: const pw.EdgeInsets.only(bottom: 5),
-                    child: pw.Row(
-                      children: [
-                        pw.Container(
-                            width: 7,
-                            height: 7,
-                            decoration: pw.BoxDecoration(
-                                color: c, shape: pw.BoxShape.circle)),
-                        pw.SizedBox(width: 8),
-                        pw.Text(e.label,
-                            style: const pw.TextStyle(
-                                fontSize: 9, color: _textDark)),
-                        pw.Spacer(),
-                        pw.Text(DateFormatter.time(e.timestamp),
-                            style: const pw.TextStyle(
-                                fontSize: 9, color: _textGrey)),
-                        if (e.speedKmh != null) ...[
-                          pw.SizedBox(width: 10),
-                          pw.Text('${e.speedKmh!.toInt()} km/h',
-                              style: pw.TextStyle(fontSize: 9, color: c)),
-                        ],
-                        if (e.confidence > 0) ...[
-                          pw.SizedBox(width: 10),
-                          pw.Text('${(e.confidence * 100).toInt()}% conf',
-                              style: const pw.TextStyle(
-                                  fontSize: 8, color: _textGrey)),
-                        ],
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
           ],
 
           if (hasRoute) ...[

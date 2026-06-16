@@ -24,7 +24,7 @@ class SupabaseService {
         .from('trips')
         .select('*, driver_scores(*)')
         .eq('device_token', deviceToken)
-        .gte('start_time', '2020-01-01T00:00:00Z') // guard against epoch rows
+  
         .order('start_time', ascending: false)
         .limit(limit);
 

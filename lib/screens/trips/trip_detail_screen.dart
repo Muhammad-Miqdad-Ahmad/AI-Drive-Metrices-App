@@ -1031,7 +1031,8 @@ class _EventTimeline extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(2.r),
                                   child: LinearProgressIndicator(
-                                    value: event.confidence,
+                                    // confidence is already 0–100, convert to 0–1 for the bar
+                                    value: (event.confidence / 100).clamp(0.0, 1.0),
                                     backgroundColor: AppColors.border,
                                     valueColor:
                                         AlwaysStoppedAnimation<Color>(color),
@@ -1039,9 +1040,47 @@ class _EventTimeline extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(width: 6.w),
-                              Text('${(event.confidence * 100).toInt()}%',
+                              Text('${event.confidence.toInt()}%',
                                   style: AppTextStyles.overline
                                       .copyWith(color: color)),
+                            ],
+                          ),
+                        ],
+                        if (event.gWorst != null && event.gWorst! > 0) ...[
+                          SizedBox(height: 6.h),
+                          Row(
+                            children: [
+                              Icon(Icons.vibration_rounded,
+                                  size: 11.r,
+                                  color: event.harshnessColor(color)),
+                              SizedBox(width: 4.w),
+                              Text('Impact: ',
+                                  style: AppTextStyles.overline),
+                              Text(
+                                '${event.gWorst!.toStringAsFixed(2)}g',
+                                style: AppTextStyles.overline.copyWith(
+                                  color: event.harshnessColor(color),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 5.w, vertical: 1.h),
+                                decoration: BoxDecoration(
+                                  color: event
+                                      .harshnessColor(color)
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                                child: Text(
+                                  event.harshnessLabel!,
+                                  style: AppTextStyles.overline.copyWith(
+                                    color: event.harshnessColor(color),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ],

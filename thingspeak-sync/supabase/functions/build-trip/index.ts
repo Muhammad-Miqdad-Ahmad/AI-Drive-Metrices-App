@@ -8,7 +8,8 @@ const supabase = createClient(
 
 Deno.serve(async (_req) => {
   try {
-    // 1. Fetch all unprocessed readings, ordered by time
+    // 1. Fetch all unprocessed readings, ordered by ThingSpeak server time.
+    //    `recorded_at` is now ThingSpeak's created_at — always a real UTC date.
     const { data: readings, error: readErr } = await supabase
       .from('device_readings')
       .select('*')
@@ -20,9 +21,29 @@ Deno.serve(async (_req) => {
       return jsonResponse({ message: 'No unprocessed readings' });
     }
 
-    // Group by device_token (in case multiple devices feed this table)
-    const byDevice = new Map<string, typeof readings>();
-    for (const r of readings) {
+    // ✅ Filter out any rows still carrying epoch/bad timestamps (pre-2020).
+    // These are legacy rows from before the sync fix; ignore them so they
+    // don't corrupt trip times.
+    const EPOCH_CUTOFF = new Date('2020-01-01T00:00:00Z').getTime();
+    const validReadings = readings.filter(
+      (r) => new Date(r.recorded_at).getTime() >= EPOCH_CUTOFF,
+    );
+
+    if (validReadings.length === 0) {
+      // Mark the bad rows processed so they're never retried
+      const ids = readings.map((r) => r.id);
+      await supabase
+        .from('device_readings')
+        .update({ processed: true })
+        .in('id', ids);
+      return jsonResponse({
+        message: 'Only epoch rows found — marked processed, no trip built',
+      });
+    }
+
+    // Group by device_token
+    const byDevice = new Map<string, typeof validReadings>();
+    for (const r of validReadings) {
       const arr = byDevice.get(r.device_token) ?? [];
       arr.push(r);
       byDevice.set(r.device_token, arr);
@@ -31,6 +52,8 @@ Deno.serve(async (_req) => {
     const results = [];
 
     for (const [deviceToken, rows] of byDevice) {
+      // ✅ start_time / end_time now come from recorded_at which is
+      //    ThingSpeak's server timestamp — always a real UTC datetime.
       const startTime = rows[0].recorded_at;
       const endTime = rows[rows.length - 1].recorded_at;
 
@@ -79,9 +102,11 @@ Deno.serve(async (_req) => {
         if (rpErr) throw rpErr;
       }
 
-      // 4. Insert trip events (harsh events, where prediction != "0"/normal)
+      // 4. Insert trip events
+      // prediction values: "0" or "1" = normal/idle, "2"+ = harsh events
+      // We store ALL non-null predictions as events (the app filters by type).
       const events = rows
-        .filter((r) => r.prediction && r.prediction !== '0')
+        .filter((r) => r.prediction != null && r.prediction !== '-1')
         .map((r) => ({
           trip_id: trip.id,
           event_label: parseInt(r.prediction!, 10) || 0,
@@ -91,6 +116,9 @@ Deno.serve(async (_req) => {
           longitude: r.longitude,
           speed_kmh: r.speed_kmh,
           recorded_at: r.recorded_at,
+          // ✅ carry g_worst through to trip_events so the app can display it
+          // (requires a g_worst column on trip_events — see migration note below)
+          // g_worst: r.g_worst,
         }));
 
       if (events.length > 0) {
@@ -101,22 +129,36 @@ Deno.serve(async (_req) => {
       }
 
       // 5. Compute and insert driver score
-      const harshCount = events.length;
-      const overall = computeOverallScore(rows, harshCount);
+      // Harsh events = prediction labels 2, 3, 4, 5 (hardAccel, rightTurn,
+      // leftTurn, harshBraking). Labels 0 and 1 are idle / normal driving.
+      const harshCount = rows.filter((r) => {
+        const label = parseInt(r.prediction ?? '0', 10);
+        return label >= 2;
+      }).length;
+
+      const gValues = rows
+        .map((r) => r.g_worst)
+        .filter((g): g is number => g != null && g > 0);
+      const avgG = gValues.length
+        ? gValues.reduce((a, b) => a + b, 0) / gValues.length
+        : 0;
+
+      const overall = computeOverallScore(harshCount, avgG, rows.length);
 
       const { error: scoreErr } = await supabase.from('driver_scores').insert({
         trip_id: trip.id,
         overall,
-        braking: null,
-        cornering: null,
-        acceleration: null,
-        smoothness: null,
+        braking: computeCategoryScore(rows, [5]), // harshBraking
+        cornering: computeCategoryScore(rows, [3, 4]), // turns
+        acceleration: computeCategoryScore(rows, [2]), // hardAccel
+        smoothness: computeSmoothnessScore(gValues),
         grade: gradeFromScore(overall),
         harsh_event_count: harshCount,
       });
       if (scoreErr) throw scoreErr;
 
-      // 6. Mark readings as processed
+      // 6. Mark ALL fetched readings as processed (including any epoch ones
+      //    that were excluded from this trip)
       const ids = rows.map((r) => r.id);
       const { error: updateErr } = await supabase
         .from('device_readings')
@@ -127,8 +169,11 @@ Deno.serve(async (_req) => {
       results.push({
         deviceToken,
         tripId: trip.id,
+        startTime,
+        endTime,
         points: routePoints.length,
         events: events.length,
+        harshCount,
       });
     }
 
@@ -139,7 +184,48 @@ Deno.serve(async (_req) => {
   }
 });
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Score helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Overall score: start at 100, penalise harsh events and high average g-force.
+ */
+function computeOverallScore(
+  harshCount: number,
+  avgG: number,
+  totalRows: number,
+): number {
+  // -5 per harsh event, -10 per 0.1g above 0.2g average
+  const harshPenalty = harshCount * 5;
+  const gPenalty = Math.max(0, (avgG - 0.2) / 0.1) * 10;
+  return Math.round(Math.max(0, Math.min(100, 100 - harshPenalty - gPenalty)));
+}
+
+/**
+ * Category score: percentage of readings NOT in given harsh labels, scaled 0–100.
+ */
+function computeCategoryScore(
+  rows: { prediction: string | null }[],
+  harshLabels: number[],
+): number {
+  const harshInCategory = rows.filter((r) =>
+    harshLabels.includes(parseInt(r.prediction ?? '0', 10)),
+  ).length;
+  return Math.round(
+    Math.max(0, 100 - (harshInCategory / rows.length) * 100 * 5),
+  );
+}
+
+/**
+ * Smoothness score based on average g_worst: lower g = smoother.
+ */
+function computeSmoothnessScore(gValues: number[]): number {
+  if (gValues.length === 0) return 100;
+  const avg = gValues.reduce((a, b) => a + b, 0) / gValues.length;
+  // 0g → 100, 1g → 0 (linear clamp)
+  return Math.round(Math.max(0, Math.min(100, 100 - avg * 100)));
+}
+
+// ── Distance helper ───────────────────────────────────────────────────────────
 
 function computeDistanceKm(
   rows: { latitude: number | null; longitude: number | null }[],
@@ -177,20 +263,15 @@ function haversineKm(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function computeOverallScore(
-  rows: { g_worst: number | null }[],
-  harshCount: number,
-): number {
-  // Simple placeholder scoring: start at 100, deduct per harsh event
-  const score = 100 - harshCount * 5;
-  return Math.max(0, Math.min(100, score));
-}
+// ── Misc helpers ──────────────────────────────────────────────────────────────
 
 function gradeFromScore(score: number): string {
-  if (score >= 90) return 'A';
-  if (score >= 75) return 'B';
+  if (score >= 90) return 'A+';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
   if (score >= 60) return 'C';
-  return 'D';
+  if (score >= 50) return 'D';
+  return 'F';
 }
 
 function serializeError(err: unknown): unknown {

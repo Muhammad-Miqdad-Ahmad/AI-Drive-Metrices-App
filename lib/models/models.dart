@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'dart:ui';
+
 // ─── User Model ────────────────────────────────────────────────────────────
 class UserModel {
   final String id;
@@ -147,6 +150,7 @@ class TripEvent {
   final double? accelX;
   final double? accelY;
   final double? accelZ;
+  final double? gWorst;
 
   const TripEvent({
     required this.id,
@@ -159,6 +163,7 @@ class TripEvent {
     this.accelX,
     this.accelY,
     this.accelZ,
+    this.gWorst,
   });
 
   factory TripEvent.fromSupabase(Map<String, dynamic> json) {
@@ -174,10 +179,28 @@ class TripEvent {
       accelX: (json['accel_x'] as num?)?.toDouble(),
       accelY: (json['accel_y'] as num?)?.toDouble(),
       accelZ: (json['accel_z'] as num?)?.toDouble(),
+      gWorst: (json['g_worst'] as num?)?.toDouble(),
     );
   }
 
   String get label => type.label;
+
+  /// Severity label based on g_worst value (g-force).
+  /// Mild < 0.3g | Moderate 0.3–0.6g | Severe >= 0.6g
+  String? get harshnessLabel {
+    if (gWorst == null || gWorst! <= 0) return null;
+    if (gWorst! < 0.3) return 'Mild';
+    if (gWorst! < 0.6) return 'Moderate';
+    return 'Severe';
+  }
+
+  /// Color-coded by severity. Falls back to [defaultColor] if no gWorst data.
+  Color harshnessColor(Color defaultColor) {
+    if (gWorst == null || gWorst! <= 0) return defaultColor;
+    if (gWorst! < 0.3) return const Color(0xFFF59E0B); // amber  – Mild
+    if (gWorst! < 0.6) return const Color(0xFFF97316); // orange – Moderate
+    return const Color(0xFFEF4444);                     // red    – Severe
+  }
 }
 
 // ─── Trip Model ────────────────────────────────────────────────────────────
@@ -216,6 +239,26 @@ class TripModel {
   }
 
   int get harshEventCount => events.where((e) => e.type.isHarsh).length;
+
+  /// Highest g_worst value across all harsh events in this trip.
+  double? get worstGForce {
+    final values = events
+        .where((e) => e.type.isHarsh && e.gWorst != null && e.gWorst! > 0)
+        .map((e) => e.gWorst!)
+        .toList();
+    if (values.isEmpty) return null;
+    values.sort();
+    return values.last;
+  }
+
+  /// Human-readable severity label for the worst g-force event.
+  String? get worstHarshnessLabel {
+    final g = worstGForce;
+    if (g == null) return null;
+    if (g < 0.3) return 'Mild';
+    if (g < 0.6) return 'Moderate';
+    return 'Severe';
+  }
   int get harshBrakingCount =>
       events.where((e) => e.type == TripEventType.harshBraking).length;
   int get sharpTurnCount => events
