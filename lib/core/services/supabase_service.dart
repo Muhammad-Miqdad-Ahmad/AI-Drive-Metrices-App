@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/models.dart';
+import '../utils/driving_score_calculator.dart';
 
 /// Single source of truth for all Supabase queries.
 /// All queries are filtered by [deviceToken] (loaded from local storage).
@@ -15,16 +16,15 @@ class SupabaseService {
 
   // ─── Trips ────────────────────────────────────────────────────────────────
 
-  /// Fetch recent trips with their driver_scores joined.
-  /// Returns newest-first. Filters out trips with bad timestamps (pre-2020).
+  /// Fetch recent trips and compute their driving scores on-device from
+  /// trip events (using g_worst). The `driver_scores` table is not queried.
   Future<List<TripModel>> getRecentTrips({int limit = 20}) async {
     debugPrint('📡 getRecentTrips: querying for device_token="$deviceToken"');
 
     final data = await _client
         .from('trips')
-        .select('*, driver_scores(*)')
+        .select('*')
         .eq('device_token', deviceToken)
-  
         .order('start_time', ascending: false)
         .limit(limit);
 
@@ -34,7 +34,23 @@ class SupabaseService {
     final trips = <TripModel>[];
     for (final row in rows) {
       try {
-        trips.add(TripModel.fromSupabase(row as Map<String, dynamic>));
+        final tripId = row['id'] as String;
+
+        // Fetch events so the on-device calculator has g_worst data.
+        final eventsData = await _client
+            .from('trip_events')
+            .select()
+            .eq('trip_id', tripId)
+            .order('recorded_at');
+
+        final events = (eventsData as List)
+            .map((e) => TripEvent.fromSupabase(e as Map<String, dynamic>))
+            .toList();
+
+        trips.add(TripModel.fromSupabase(
+          row as Map<String, dynamic>,
+          events: events,
+        ));
       } catch (e) {
         debugPrint('⚠️ getRecentTrips: failed to parse row ${row['id']}: $e');
       }
@@ -42,11 +58,12 @@ class SupabaseService {
     return trips;
   }
 
-  /// Fetch a single trip by its Supabase UUID, with score + events + route.
+  /// Fetch a single trip by its Supabase UUID, with events + route.
+  /// The driving score is computed on-device from the fetched events.
   Future<TripModel?> getTripDetail(String tripId) async {
     final tripData = await _client
         .from('trips')
-        .select('*, driver_scores(*)')
+        .select('*')
         .eq('id', tripId)
         .eq('device_token', deviceToken)
         .maybeSingle();
@@ -79,10 +96,11 @@ class SupabaseService {
   // ─── Dashboard stats ──────────────────────────────────────────────────────
 
   /// Aggregate stats across all trips for this device.
+  /// Scores are computed on-device from trip events.
   Future<DashboardStats> getDashboardStats() async {
     final data = await _client
         .from('trips')
-        .select('distance_km, driver_scores(overall, harsh_event_count)')
+        .select('id, distance_km')
         .eq('device_token', deviceToken)
         .gte('start_time', '2020-01-01T00:00:00Z'); // guard against epoch rows
 
@@ -98,13 +116,22 @@ class SupabaseService {
 
     for (final row in rows) {
       totalKm += (row['distance_km'] as num?)?.toDouble() ?? 0;
-      final score = row['driver_scores'];
-      if (score != null) {
-        final s = (score['overall'] as num?)?.toDouble() ?? 0;
-        scoreSum += s;
-        if (s > bestScore) bestScore = s;
-        totalEvents += (score['harsh_event_count'] as int?) ?? 0;
-      }
+
+      final tripId = row['id'] as String;
+      final eventsData = await _client
+          .from('trip_events')
+          .select()
+          .eq('trip_id', tripId)
+          .order('recorded_at');
+
+      final events = (eventsData as List)
+          .map((e) => TripEvent.fromSupabase(e as Map<String, dynamic>))
+          .toList();
+
+      final score = DrivingScoreCalculator.compute(events);
+      scoreSum += score.overall;
+      if (score.overall > bestScore) bestScore = score.overall;
+      totalEvents += score.harshEventCount;
     }
 
     return DashboardStats(
@@ -147,11 +174,12 @@ class SupabaseService {
   }
 
   /// Last 7 days of scores for the weekly chart (one per trip, ordered by day).
+  /// Scores are computed on-device from trip events.
   Future<List<Map<String, dynamic>>> getWeeklyScores() async {
     final since = DateTime.now().subtract(const Duration(days: 7));
     final data = await _client
         .from('trips')
-        .select('start_time, driver_scores(overall)')
+        .select('id, start_time')
         .eq('device_token', deviceToken)
         .gte('start_time', since.toIso8601String())
         .order('start_time');
@@ -160,11 +188,21 @@ class SupabaseService {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     for (final row in (data as List)) {
+      final tripId = row['id'] as String;
+      final eventsData = await _client
+          .from('trip_events')
+          .select()
+          .eq('trip_id', tripId)
+          .order('recorded_at');
+
+      final events = (eventsData as List)
+          .map((e) => TripEvent.fromSupabase(e as Map<String, dynamic>))
+          .toList();
+
+      final score = DrivingScoreCalculator.compute(events);
       final dt = DateTime.parse(row['start_time'] as String).toLocal();
       final label = days[dt.weekday - 1];
-      final score =
-          (row['driver_scores']?['overall'] as num?)?.toDouble() ?? 0;
-      grouped.putIfAbsent(label, () => []).add(score);
+      grouped.putIfAbsent(label, () => []).add(score.overall);
     }
 
     return days.map((day) {
@@ -274,9 +312,13 @@ extension TripFlushExtension on SupabaseService {
   /// Sends the end-of-trip sentinel row so the DB trigger flushes immediately.
   /// Use this from your Flutter app's "Stop Trip" button instead of waiting
   /// for ThingSpeak to post '-1'.
+  ///
+  /// prediction = '-1' is the sentinel value the trigger watches for.
+  /// thingspeak_entry_id uses -1 as a sentinel (it is NOT NULL in the schema).
   Future<void> sendTripEndSignal() async {
     await _client.from('device_readings').insert({
       'device_token': deviceToken,
+      'thingspeak_entry_id': -1,
       'prediction': '-1',
       'confidence': 0,
       'speed_kmh': 0,

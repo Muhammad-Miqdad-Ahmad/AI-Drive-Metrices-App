@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import '../core/utils/driving_score_calculator.dart';
 
 // ─── User Model ────────────────────────────────────────────────────────────
 class UserModel {
@@ -273,21 +274,11 @@ class TripModel {
     List<TripEvent>? events,
     List<LatLngPoint>? route,
   }) {
-    final scoreJson = json['driver_scores'];
-    final score = scoreJson != null
-        ? DriverScoreModel.fromSupabase(
-            scoreJson is List
-                ? scoreJson.first as Map<String, dynamic>
-                : scoreJson as Map<String, dynamic>,
-          )
-        : const DriverScoreModel(
-            overall: 0,
-            braking: 0,
-            cornering: 0,
-            acceleration: 0,
-            smoothness: 0,
-            grade: 'N/A',
-          );
+    final resolvedEvents = events ?? [];
+
+    // Score is always computed on-device from trip events using g_worst.
+    // The Supabase `driver_scores` table is intentionally ignored here.
+    final score = DrivingScoreCalculator.compute(resolvedEvents);
 
     return TripModel(
       id: json['id'] as String,
@@ -299,7 +290,7 @@ class TripModel {
       maxSpeedKmh: (json['max_speed_kmh'] as num?)?.toDouble() ?? 0,
       avgSpeedKmh: (json['avg_speed_kmh'] as num?)?.toDouble() ?? 0,
       score: score,
-      events: events ?? [],
+      events: resolvedEvents,
       route: route ?? [],
     );
   }
