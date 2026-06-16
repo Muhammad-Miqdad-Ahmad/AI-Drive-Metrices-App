@@ -555,14 +555,18 @@ class _DrivingAnalysisCard extends StatelessWidget {
   }
 
   String _generateInsight(TripModel trip) {
-    if (trip.score.overall >= 90)
+    if (trip.score.overall >= 90) {
       return 'Excellent drive! Your smooth and controlled style is very fuel efficient and reduces vehicle wear.';
-    if (trip.harshBrakingCount > 2)
+    }
+    if (trip.harshBrakingCount > 2) {
       return 'You braked harshly ${trip.harshBrakingCount} times. Try to anticipate stops earlier for a smoother ride.';
-    if (trip.sharpTurnCount > 3)
+    }
+    if (trip.sharpTurnCount > 3) {
       return 'You took ${trip.sharpTurnCount} sharp turns. Slowing down before corners improves safety and tyre life.';
-    if (trip.score.overall >= 70)
+    }
+    if (trip.score.overall >= 70) {
       return 'Good trip overall! Minor improvements in braking smoothness could push your score higher.';
+    }
     return 'Focus on smoother braking and steady acceleration. Consistency over time greatly improves your score.';
   }
 }
@@ -703,34 +707,38 @@ class _RecommendationsCard extends StatelessWidget {
 
   List<_Tip> _getTips() {
     final tips = <_Tip>[];
-    if (trip.score.braking < 70)
+    if (trip.score.braking < 70) {
       tips.add(_Tip(
           icon: Icons.car_crash_rounded,
           color: AppColors.danger,
           title: 'Improve Braking',
           body:
               'Anticipate stops 3-4 seconds earlier. Gradual pressure reduces brake wear and improves your score.'));
-    if (trip.score.cornering < 70)
+    }
+    if (trip.score.cornering < 70) {
       tips.add(_Tip(
           icon: Icons.turn_right_rounded,
           color: AppColors.warning,
           title: 'Smoother Cornering',
           body:
               'Reduce speed before corners, not during. Enter slow, exit fast for better control.'));
-    if (trip.score.acceleration < 70)
+    }
+    if (trip.score.acceleration < 70) {
       tips.add(_Tip(
           icon: Icons.trending_up_rounded,
           color: AppColors.accent,
           title: 'Steady Acceleration',
           body:
               'Avoid flooring the pedal. Gradual acceleration is more fuel-efficient and comfortable.'));
-    if (trip.score.overall >= 85)
+    }
+    if (trip.score.overall >= 85) {
       tips.add(_Tip(
           icon: Icons.emoji_events_rounded,
           color: AppColors.success,
           title: 'Great Drive!',
           body:
               'You scored ${trip.score.overall.toInt()}/100. Keep this consistency to maintain a top-tier rating.'));
+    }
     return tips;
   }
 
@@ -825,8 +833,9 @@ class _EventsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (loadingDetail && trip.events.isEmpty)
+    if (loadingDetail && trip.events.isEmpty) {
       return const Center(child: CircularProgressIndicator());
+    }
 
     final harsh = trip.events.where((e) => e.type.isHarsh).toList();
     final all = List<TripEvent>.from(trip.events);
@@ -1032,7 +1041,8 @@ class _EventTimeline extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(2.r),
                                   child: LinearProgressIndicator(
                                     // confidence is already 0–100, convert to 0–1 for the bar
-                                    value: (event.confidence / 100).clamp(0.0, 1.0),
+                                    value: (event.confidence / 100)
+                                        .clamp(0.0, 1.0),
                                     backgroundColor: AppColors.border,
                                     valueColor:
                                         AlwaysStoppedAnimation<Color>(color),
@@ -1054,8 +1064,7 @@ class _EventTimeline extends StatelessWidget {
                                   size: 11.r,
                                   color: event.harshnessColor(color)),
                               SizedBox(width: 4.w),
-                              Text('Impact: ',
-                                  style: AppTextStyles.overline),
+                              Text('Impact: ', style: AppTextStyles.overline),
                               Text(
                                 '${event.gWorst!.toStringAsFixed(2)}g',
                                 style: AppTextStyles.overline.copyWith(
