@@ -173,7 +173,8 @@ class TripEvent {
       id: json['id'] as String,
       type: TripEventType.values[label.clamp(0, TripEventType.values.length - 1)],
       timestamp: DateTime.parse(json['recorded_at'] as String),
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+      // DB stores confidence as 0.0–1.0; normalise to 0–100 for display.
+      confidence: (((json['confidence'] as num?)?.toDouble() ?? 0) * 100).clamp(0.0, 100.0),
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
       speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
@@ -419,7 +420,8 @@ class DeviceReading {
       DeviceReading(
         id: json['id'] as String,
         prediction: (json['prediction'] as String?) ?? 'Unknown',
-        confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+        // STM32 sends confidence as 0.0–1.0 (e.g. 0.9981 = 99.8%); normalise to 0–100.
+        confidence: (((json['confidence'] as num?)?.toDouble() ?? 0) * 100).clamp(0.0, 100.0),
         speedKmh: (json['speed_kmh'] as num?)?.toDouble() ?? 0,
         latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
         longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
