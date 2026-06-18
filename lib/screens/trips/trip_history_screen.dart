@@ -610,9 +610,11 @@ class _HarshnessBadge extends StatelessWidget {
   const _HarshnessBadge({required this.label, required this.gForce});
 
   Color get _color {
-    if (gForce < 0.3) return const Color(0xFFF59E0B); // amber
-    if (gForce < 0.6) return const Color(0xFFF97316); // orange
-    return const Color(0xFFEF4444); // red
+    final dg = (gForce - 1.0).clamp(0.0, double.infinity);
+    if (dg < 0.10) return const Color(0xFF22C55E); // green  – Low
+    if (dg < 0.30) return const Color(0xFFF59E0B); // amber  – Mild
+    if (dg < 0.60) return const Color(0xFFF97316); // orange – Moderate
+    return const Color(0xFFEF4444);                 // red    – Severe
   }
 
   @override

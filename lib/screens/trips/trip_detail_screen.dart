@@ -1084,7 +1084,7 @@ class _EventTimeline extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 child: Text(
-                                  event.harshnessLabel!,
+                                  event.harshnessLabel ?? 'Low',
                                   style: AppTextStyles.overline.copyWith(
                                     color: event.harshnessColor(color),
                                     fontWeight: FontWeight.w600,

@@ -602,6 +602,7 @@ class _ReportCardState extends State<_ReportCard> {
   pw.Widget _eventRow(TripEvent event) {
     final color = _eventColor(event.type);
     final (bgColor, bdColor) = _eventBgBorder(event.type);
+    final impact = DrivingScoreCalculator.eventScoreImpact(event);
 
     return pw.Container(
       margin: const pw.EdgeInsets.only(bottom: 8),
@@ -703,10 +704,8 @@ class _ReportCardState extends State<_ReportCard> {
             ),
           ],
           // ── Score impact row ────────────────────────────────────────────
-          Builder(builder: (ctx) {
-            final impact = DrivingScoreCalculator.eventScoreImpact(event);
-            if (impact == null) return pw.SizedBox(height: 0);
-            return pw.Padding(
+          if (impact != null)
+            pw.Padding(
               padding: const pw.EdgeInsets.only(top: 7),
               child: pw.Container(
                 padding: const pw.EdgeInsets.symmetric(
@@ -731,8 +730,7 @@ class _ReportCardState extends State<_ReportCard> {
                   ],
                 ),
               ),
-            );
-          }),
+            ),
         ],
       ),
     );

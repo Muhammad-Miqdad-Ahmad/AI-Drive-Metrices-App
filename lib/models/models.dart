@@ -188,20 +188,26 @@ class TripEvent {
   String get label => type.label;
 
   /// Severity label based on g_worst value (g-force).
-  /// Mild < 0.3g | Moderate 0.3–0.6g | Severe >= 0.6g
+  /// Sensor reports raw resultant g (includes ~1.0g gravity baseline).
+  /// Dynamic tiers (after subtracting 1.0g baseline):
+  ///   Low < 0.10g | Mild 0.10–0.29g | Moderate 0.30–0.59g | Severe ≥ 0.60g
   String? get harshnessLabel {
     if (gWorst == null || gWorst! <= 0) return null;
-    if (gWorst! < 0.3) return 'Mild';
-    if (gWorst! < 0.6) return 'Moderate';
+    final dg = (gWorst! - 1.0).clamp(0.0, double.infinity);
+    if (dg < 0.10) return 'Low';
+    if (dg < 0.30) return 'Mild';
+    if (dg < 0.60) return 'Moderate';
     return 'Severe';
   }
 
   /// Color-coded by severity. Falls back to [defaultColor] if no gWorst data.
   Color harshnessColor(Color defaultColor) {
     if (gWorst == null || gWorst! <= 0) return defaultColor;
-    if (gWorst! < 0.3) return const Color(0xFFF59E0B); // amber  – Mild
-    if (gWorst! < 0.6) return const Color(0xFFF97316); // orange – Moderate
-    return const Color(0xFFEF4444);                     // red    – Severe
+    final dg = (gWorst! - 1.0).clamp(0.0, double.infinity);
+    if (dg < 0.10) return const Color(0xFF22C55E); // green  – Low
+    if (dg < 0.30) return const Color(0xFFF59E0B); // amber  – Mild
+    if (dg < 0.60) return const Color(0xFFF97316); // orange – Moderate
+    return const Color(0xFFEF4444);                 // red    – Severe
   }
 }
 
@@ -254,11 +260,14 @@ class TripModel {
   }
 
   /// Human-readable severity label for the worst g-force event.
+  /// Uses the same 1.0g baseline correction as DrivingScoreCalculator.
   String? get worstHarshnessLabel {
     final g = worstGForce;
     if (g == null) return null;
-    if (g < 0.3) return 'Mild';
-    if (g < 0.6) return 'Moderate';
+    final dg = (g - 1.0).clamp(0.0, double.infinity);
+    if (dg < 0.10) return 'Low';
+    if (dg < 0.30) return 'Mild';
+    if (dg < 0.60) return 'Moderate';
     return 'Severe';
   }
 

@@ -213,19 +213,19 @@ class DrivingScoreCalculator {
     switch (event.type) {
       case TripEventType.harshBraking:
         return EventScoreImpact(
-          primary: _ScoreDelta('Braking', pen),
-          secondary: _ScoreDelta('Smoothness', pen * 0.5),
+          primary: ScoreDelta('Braking', pen),
+          secondary: ScoreDelta('Smoothness', pen * 0.5),
         );
       case TripEventType.leftTurn:
       case TripEventType.rightTurn:
         return EventScoreImpact(
-          primary: _ScoreDelta('Cornering', pen),
-          secondary: _ScoreDelta('Smoothness', pen * 0.4),
+          primary: ScoreDelta('Cornering', pen),
+          secondary: ScoreDelta('Smoothness', pen * 0.4),
         );
       case TripEventType.hardAccel:
         return EventScoreImpact(
-          primary: _ScoreDelta('Acceleration', pen),
-          secondary: _ScoreDelta('Smoothness', pen * 0.4),
+          primary: ScoreDelta('Acceleration', pen),
+          secondary: ScoreDelta('Smoothness', pen * 0.4),
         );
       default:
         return null;
@@ -245,16 +245,16 @@ class DrivingScoreCalculator {
 }
 
 /// Score deduction for one category caused by a single harsh event.
-class _ScoreDelta {
+class ScoreDelta {
   final String category;
   final double points;
-  const _ScoreDelta(this.category, this.points);
+  const ScoreDelta(this.category, this.points);
 }
 
 /// The combined score impact (primary category + smoothness) for one event.
 class EventScoreImpact {
-  final _ScoreDelta primary;
-  final _ScoreDelta secondary;
+  final ScoreDelta primary;
+  final ScoreDelta secondary;
 
   const EventScoreImpact({required this.primary, required this.secondary});
 
