@@ -8,6 +8,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/storage/local_storage_service.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../core/utils/driving_score_calculator.dart';
 import '../../models/models.dart';
 import 'dart:typed_data';
 
@@ -701,6 +702,37 @@ class _ReportCardState extends State<_ReportCard> {
               ],
             ),
           ],
+          // ── Score impact row ────────────────────────────────────────────
+          Builder(builder: (ctx) {
+            final impact = DrivingScoreCalculator.eventScoreImpact(event);
+            if (impact == null) return pw.SizedBox(height: 0);
+            return pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 7),
+              child: pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 9, vertical: 5),
+                decoration: pw.BoxDecoration(
+                  color: bgColor,
+                  borderRadius: pw.BorderRadius.circular(5),
+                  border: pw.Border.all(color: bdColor),
+                ),
+                child: pw.Row(
+                  children: [
+                    pw.Text('Score impact:  ',
+                        style: const pw.TextStyle(
+                            fontSize: 8, color: _textGrey)),
+                    pw.Text(
+                      impact.summary,
+                      style: pw.TextStyle(
+                          fontSize: 8,
+                          color: color,
+                          fontWeight: pw.FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/storage/local_storage_service.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../core/utils/driving_score_calculator.dart';
 import '../../models/models.dart';
 import '../../widgets/common/stat_card_widget.dart';
 
@@ -1113,6 +1114,17 @@ class _EventTimeline extends StatelessWidget {
                             ],
                           ),
                         ],
+                        // ── Score impact ──────────────────────────────
+                        Builder(builder: (context) {
+                          final impact = DrivingScoreCalculator
+                              .eventScoreImpact(event);
+                          if (impact == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: EdgeInsets.only(top: 8.h),
+                            child: _ScoreImpactRow(
+                                impact: impact, baseColor: color),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -1121,6 +1133,41 @@ class _EventTimeline extends StatelessWidget {
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _ScoreImpactRow extends StatelessWidget {
+  final EventScoreImpact impact;
+  final Color baseColor;
+  const _ScoreImpactRow({required this.impact, required this.baseColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(color: baseColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.trending_down_rounded, size: 12.r, color: baseColor),
+          SizedBox(width: 5.w),
+          Text('Score impact: ', style: AppTextStyles.overline),
+          Expanded(
+            child: Text(
+              impact.summary,
+              style: AppTextStyles.overline.copyWith(
+                color: baseColor,
+                fontWeight: FontWeight.w700,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

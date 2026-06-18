@@ -34,10 +34,6 @@ import '../../models/models.dart';
 ///   braking × 35% + cornering × 25% + acceleration × 25% + smoothness × 15%
 class DrivingScoreCalculator {
   // ── Gravity baseline correction ────────────────────────────────────────────
-  /// Default resting g-force assumed when no per-trip calibration is
-  /// supplied. Real sensors rarely read exactly 1.0g at rest (mounting tilt
-  /// shifts this), so pass a calibrated value into [compute] whenever
-  /// possible instead of relying on this fallback.
   static const double defaultGravityBaseline = 1.0;
 
   // ── Thresholds (apply to *dynamic* g, i.e. after baseline subtraction) ────
@@ -58,8 +54,7 @@ class DrivingScoreCalculator {
 
   /// Strips the gravity/tilt baseline out of a raw resultant Gmax reading,
   /// returning only the "dynamic" component caused by braking, cornering,
-  /// or acceleration. This is what the severity tiers are actually meant to
-  /// measure.
+  /// or acceleration.
   static double dynamicG(double gWorstRaw, double baseline) {
     final dynamic = gWorstRaw - baseline;
     return dynamic < 0 ? 0 : dynamic;
@@ -67,8 +62,6 @@ class DrivingScoreCalculator {
 
   /// Returns a deduction amount based on [gWorstRaw] severity tier, after
   /// correcting for [baseline] gravity offset.
-  /// Returns 0 if [gWorstRaw] is null or the corrected value is below the
-  /// mild threshold (i.e. the event is within normal driving range).
   static double _penalty(double? gWorstRaw, double baseline) {
     if (gWorstRaw == null) return 0;
     final gWorst = dynamicG(gWorstRaw, baseline);
@@ -79,11 +72,7 @@ class DrivingScoreCalculator {
   }
 
   /// Estimates a resting/cruising g-force baseline directly from this trip's
-  /// own events, used only as a fallback when the caller doesn't supply a
-  /// `calibratedBaseline` (e.g. one computed from raw IMU rows where
-  /// Speed == 0). This takes the lowest `gWorst` readings in the trip — the
-  /// closest thing to "at rest" we can infer from event data alone — and
-  /// averages them.
+  /// own events. Uses the lowest ~25% of readings as a proxy for "at rest".
   static double _estimateBaselineFromEvents(List<TripEvent> events) {
     final readings = events
         .map((e) => e.gWorst)
@@ -93,28 +82,12 @@ class DrivingScoreCalculator {
 
     if (readings.isEmpty) return defaultGravityBaseline;
 
-    // Use the lowest ~25% of readings as a proxy for "at rest / smooth
-    // driving" — harsh events will sit well above this range.
     final sampleCount = (readings.length * 0.25).ceil().clamp(1, readings.length);
     final lowest = readings.sublist(0, sampleCount);
     return lowest.reduce((a, b) => a + b) / lowest.length;
   }
 
   /// Compute a [DriverScoreModel] from [events].
-  ///
-  /// - Braking score    ← penalised by [TripEventType.harshBraking] events
-  /// - Cornering score  ← penalised by left/right turn events
-  /// - Acceleration score ← penalised by [TripEventType.hardAccel] events
-  /// - Smoothness score ← penalised by *all* harsh events (composite)
-  ///
-  /// If [events] is empty the caller receives a perfect score of 100/A+
-  /// (no data → no penalties).
-  ///
-  /// [calibratedBaseline] should be the device's resting g-force magnitude
-  /// for this trip — e.g. the average raw Gmax across rows where Speed == 0.
-  /// If you don't have that, omit it and a baseline will be estimated from
-  /// the trip's own lowest readings; this is a fallback, not a substitute
-  /// for real calibration.
   static DriverScoreModel compute(
     List<TripEvent> events, {
     double? calibratedBaseline,
@@ -216,5 +189,84 @@ class DrivingScoreCalculator {
       grade: DriverScoreModel.gradeFromScore(overall),
       harshEventCount: harshCount,
     );
+  }
+
+  // ── Per-event score impact ─────────────────────────────────────────────────
+
+  /// Returns a human-readable description of how much this single [event]
+  /// penalised each affected sub-score category.
+  ///
+  /// Returns `null` for non-harsh events or events below the mild threshold.
+  ///
+  /// Examples:
+  ///   harshBraking / Severe  → "−18 pts Braking · −9 pts Smoothness"
+  ///   rightTurn   / Moderate → "−8 pts Cornering · −3.2 pts Smoothness"
+  ///   hardAccel   / Mild     → "−3 pts Acceleration · −1.2 pts Smoothness"
+  static EventScoreImpact? eventScoreImpact(
+    TripEvent event, {
+    double baseline = defaultGravityBaseline,
+  }) {
+    if (!event.type.isHarsh) return null;
+    final pen = _penalty(event.gWorst, baseline);
+    if (pen == 0) return null;
+
+    switch (event.type) {
+      case TripEventType.harshBraking:
+        return EventScoreImpact(
+          primary: _ScoreDelta('Braking', pen),
+          secondary: _ScoreDelta('Smoothness', pen * 0.5),
+        );
+      case TripEventType.leftTurn:
+      case TripEventType.rightTurn:
+        return EventScoreImpact(
+          primary: _ScoreDelta('Cornering', pen),
+          secondary: _ScoreDelta('Smoothness', pen * 0.4),
+        );
+      case TripEventType.hardAccel:
+        return EventScoreImpact(
+          primary: _ScoreDelta('Acceleration', pen),
+          secondary: _ScoreDelta('Smoothness', pen * 0.4),
+        );
+      default:
+        return null;
+    }
+  }
+
+  /// Tier label from raw g-force magnitude (not baseline-corrected).
+  /// Used only for display purposes on the event card.
+  static String penaltyLabel(double? gWorst,
+      {double baseline = defaultGravityBaseline}) {
+    final pen = _penalty(gWorst, baseline);
+    if (pen == 0) return 'None';
+    if (pen <= _mildPenalty) return 'Mild';
+    if (pen <= _moderatePenalty) return 'Moderate';
+    return 'Severe';
+  }
+}
+
+/// Score deduction for one category caused by a single harsh event.
+class _ScoreDelta {
+  final String category;
+  final double points;
+  const _ScoreDelta(this.category, this.points);
+}
+
+/// The combined score impact (primary category + smoothness) for one event.
+class EventScoreImpact {
+  final _ScoreDelta primary;
+  final _ScoreDelta secondary;
+
+  const EventScoreImpact({required this.primary, required this.secondary});
+
+  /// Short summary, e.g. "−18 pts Braking · −9 pts Smoothness"
+  String get summary {
+    final p = '−${_fmt(primary.points)} pts ${primary.category}';
+    final s = '−${_fmt(secondary.points)} pts ${secondary.category}';
+    return '$p  ·  $s';
+  }
+
+  String _fmt(double v) {
+    if (v == v.truncateToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(1);
   }
 }
