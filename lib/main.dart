@@ -10,9 +10,9 @@ void main() async {
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://gsgmyvdszgejcadgrvgs.supabase.co',
+    url: 'https://feyzscuouqzzhulbgwfw.supabase.co/',
     publishableKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzZ215dmRzemdlamNhZGdydmdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTk3NTIsImV4cCI6MjA5NjQ5NTc1Mn0.2IJohd6T1WK1QpXD_yvWHpTaCmh6U30qrgeMbzVQYys',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZleXpzY3VvdXF6emh1bGJnd2Z3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTAxNzYsImV4cCI6MjA5NzI2NjE3Nn0.1P0wP8xBoiax9vso2kHIBrBFLkhSPMvbRUf9qdghed4',
   );
 
   // Seed default demo account (user@gmail.com / 111111)
