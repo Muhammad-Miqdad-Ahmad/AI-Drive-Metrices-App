@@ -172,7 +172,7 @@ class TripEvent {
     return TripEvent(
       id: json['id'] as String,
       type: TripEventType.values[label.clamp(0, TripEventType.values.length - 1)],
-      timestamp: DateTime.parse(json['recorded_at'] as String),
+      timestamp: DateTime.parse(json['recorded_at'] as String).toLocal(),
       // DB stores confidence as 0.0–1.0; normalise to 0–100 for display.
       confidence: (((json['confidence'] as num?)?.toDouble() ?? 0) * 100).clamp(0.0, 100.0),
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
@@ -261,6 +261,7 @@ class TripModel {
     if (g < 0.6) return 'Moderate';
     return 'Severe';
   }
+
   int get harshBrakingCount =>
       events.where((e) => e.type == TripEventType.harshBraking).length;
   int get sharpTurnCount => events
@@ -283,9 +284,9 @@ class TripModel {
 
     return TripModel(
       id: json['id'] as String,
-      startTime: DateTime.parse(json['start_time'] as String),
+      startTime: DateTime.parse(json['start_time'] as String).toLocal(),
       endTime: json['end_time'] != null
-          ? DateTime.parse(json['end_time'] as String)
+          ? DateTime.parse(json['end_time'] as String).toLocal()
           : null,
       distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
       maxSpeedKmh: (json['max_speed_kmh'] as num?)?.toDouble() ?? 0,
@@ -316,7 +317,7 @@ class LatLngPoint {
         longitude: (json['longitude'] as num).toDouble(),
         speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
         timestamp: json['recorded_at'] != null
-            ? DateTime.parse(json['recorded_at'] as String)
+            ? DateTime.parse(json['recorded_at'] as String).toLocal()
             : null,
       );
 
@@ -426,6 +427,6 @@ class DeviceReading {
         latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
         longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
         gWorst: (json['g_worst'] as num?)?.toDouble() ?? 0,
-        recordedAt: DateTime.parse(json['recorded_at'] as String),
+        recordedAt: DateTime.parse(json['recorded_at'] as String).toLocal(),
       );
 }
