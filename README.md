@@ -27,6 +27,7 @@ An AI-powered smart driving safety monitor built with Flutter. The app pairs wit
 |---|---|
 | **This repo** | Flutter mobile app (on-device scoring, UI, PDF reports) |
 | [Drive-Metrices-AI](https://github.com/Muhammad-Miqdad-Ahmad/Drive-Metrices-AI) | STM32 firmware for the IoT black box hardware device |
+| [DriveMetricsAI-Models](https://github.com/maheen-zahid-26/DriveMetrcisAI-Models) | ML models for driving behaviour classification |
 
 ---
 
